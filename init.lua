@@ -15,13 +15,13 @@ local gIcon = Icons.MD_SETTINGS
 local animSpell = mq.FindTextureAnimation('A_SpellIcons')
 local animItem = mq.FindTextureAnimation('A_DragItem')
 local TLO = mq.TLO
-local winFlag = bit32.bor(ImGuiWindowFlags.NoScrollbar)
+local winFlag = bit32.bor(ImGuiWindowFlags.NoScrollbar, ImGuiWindowFlags.MenuBar)
 local textureWidth = 26
 local textureHeight = 26
 local mimic = false
 local followMe = false
 local ShowGUI, openGUI, openConfigGUI = true, true, false
-local ver = "v0.11"
+local ver = "v0.12"
 local theme = {}
 local ZoomLvl = 1
 local themeFile = mq.configDir .. '/MyThemeZ.lua'
@@ -31,6 +31,7 @@ ImGuiTableFlags.NoPadOuterX, ImGuiTableFlags.Resizable, ImGuiTableFlags.SizingFi
 local manaClass = {[1] = 'WIZ',[2] = 'MAG', [3] = 'NEC',[4] =  'CLR',[5] =  'DRU', [6] = 'SHM', [7] = 'RNG',[8] =  'SHD',[9] =  'PAL',[10] =  'BST',[12] =  'BRD',}
 local lastTar = mq.TLO.Target.ID() or 0
 local themeName = 'Default'
+local locked = false
 
 ---comment Check to see if the file we want to work on exists.
 ---@param name string -- Full Path to file
@@ -293,14 +294,17 @@ local function GUI_Group(open)
     if not ShowGUI then return end
 
     if TLO.Me.Zoning() then return end
-	
+	local flags = winFlag
+    if locked then
+        flags = bit32.bor(ImGuiWindowFlags.NoScrollbar, ImGuiWindowFlags.NoMove, ImGuiWindowFlags.MenuBar)
+    end
     --Rounded corners
     ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 10)
     -- Default window size
     ImGui.SetNextWindowSize(216, 239, ImGuiCond.FirstUseEver)
     local show = false
 	ColorCount = DrawTheme(ColorCount, themeName)
-    open, show = ImGui.Begin("My Group##MyGroup"..mq.TLO.Me.DisplayName(), open, winFlag)
+    open, show = ImGui.Begin("My Group##MyGroup"..mq.TLO.Me.DisplayName(), open, flags)
 
     if not show then
         ImGui.PopStyleVar()
@@ -309,9 +313,24 @@ local function GUI_Group(open)
         return open
     end
 
-	if ImGui.Button(gIcon) then
-		openConfigGUI = not openConfigGUI
-	end
+    if ImGui.BeginMenuBar() then
+        local lockedIcon = locked and Icons.FA_LOCK .. '##lockTabButton_MyChat' or
+        Icons.FA_UNLOCK .. '##lockTablButton_MyChat'
+        if ImGui.Button(lockedIcon) then
+            --ImGuiWindowFlags.NoMove
+            locked = not locked
+
+        end
+        if ImGui.IsItemHovered() then
+            ImGui.BeginTooltip()
+            ImGui.Text("Lock Window")
+            ImGui.EndTooltip()
+        end
+        if ImGui.Button(gIcon..'##PlayerTarg') then
+            openConfigGUI = not openConfigGUI
+        end
+        ImGui.EndMenuBar()
+    end
     local member = nil
 
     -- Player Information
