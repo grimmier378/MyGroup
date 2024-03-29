@@ -8,6 +8,7 @@ function COLOR.color(c)
     if (c=='yellow2') then return ImVec4( 0.7, 0.6, 0.1, 0.7) end
     if (c=='white') then return ImVec4(1, 1, 1, 1) end
     if (c=='blue') then return ImVec4(0, 0, 1, 1) end
+    if (c=='softblue') then return ImVec4(0, 0, 1, 0.5) end
     if (c=='light blue2') then return ImVec4(0.2, 0.9, 0.9, 0.5) end
     if (c=='light blue') then return ImVec4(0, 1, 1, 1) end
     if (c=='green') then return ImVec4(0, 1, 0, 1) end
