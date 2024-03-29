@@ -21,7 +21,7 @@ local textureHeight = 26
 local mimic = false
 local followMe = false
 local ShowGUI, openGUI, openConfigGUI = true, true, false
-local ver = "v0.1"
+local ver = "v0.11"
 local theme = {}
 local ZoomLvl = 1
 local themeFile = mq.configDir .. '/MyThemeZ.lua'
@@ -398,8 +398,8 @@ local function GUI_Group(open)
     if mimic then
 			ImGui.PushStyleColor(ImGuiCol.Button, COLOR.color('pink'))
 
-			if ImGui.Button('Mimic\nTarget') then
-				mq.cmdf("/dgge /target id %s", mq.TLO.Target.ID())
+			if ImGui.Button('Mimic\nMe') then
+				mq.cmd("/groupinfo mimicme off")
 				mimic = not mimic
 			end
 
@@ -407,8 +407,8 @@ local function GUI_Group(open)
 
 		else
 
-			if ImGui.Button('Mimic\nTarget') then
-				mq.cmdf("/dgge /target id %s", mq.TLO.Target.ID())
+			if ImGui.Button('Mimic\nMe') then
+				mq.cmd("/groupinfo mimicme on")
 				mimic = not mimic
 			end
 	end
