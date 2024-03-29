@@ -89,12 +89,12 @@ local function loadSettings()
         settings[script].Scale = 1
     end
 
-    if not settings[script].LoadTheme then
-        settings[script].LoadTheme = theme.LoadTheme
+    if settings[script].LoadTheme == nil then
+        settings[script].LoadTheme = themeName
     end
+
     locked = settings[script].locked
     ZoomLvl = settings[script].Scale
-
     themeName = settings[script].LoadTheme
 
     writeSettings(configFile, settings)
@@ -371,6 +371,7 @@ local function GUI_Group(open)
         if ImGui.Button(lockedIcon) then
             --ImGuiWindowFlags.NoMove
             locked = not locked
+            settings = dofile(configFile)
             settings[script].locked = locked
             writeSettings(configFile, settings)
         end
@@ -525,6 +526,7 @@ local function MyGroupConf_GUI(open)
 			end
 		end
 		ImGui.EndCombo()
+        
 	end
 
 	-- Slider for adjusting zoom level
@@ -539,6 +541,10 @@ local function MyGroupConf_GUI(open)
 
 	if ImGui.Button('close') then
 		openConfigGUI = false
+        settings = dofile(configFile)
+        settings[script].Scale = ZoomLvl
+        settings[script].LoadTheme = themeName
+        settings[script].locked = locked
         writeSettings(configFile,settings)
 	end
 
