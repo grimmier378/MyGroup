@@ -25,6 +25,7 @@ local ver = "v0.12"
 local theme = {}
 local ZoomLvl = 1
 local themeFile = mq.configDir .. '/MyThemeZ.lua'
+local configFile = mq.configDir .. '/MyUI_Configs.lua'
 local ColorCount, ColorCountConf = 0, 0
 local tPlayerFlags = bit32.bor(ImGuiTableFlags.NoBorders, ImGuiTableFlags.NoBordersInBody, ImGuiTableFlags.NoPadInnerX,
 ImGuiTableFlags.NoPadOuterX, ImGuiTableFlags.Resizable, ImGuiTableFlags.SizingFixedFit)
@@ -32,7 +33,15 @@ local manaClass = {[1] = 'WIZ',[2] = 'MAG', [3] = 'NEC',[4] =  'CLR',[5] =  'DRU
 local lastTar = mq.TLO.Target.ID() or 0
 local themeName = 'Default'
 local locked = false
-
+local script = 'MyGroup'
+local defaults, settings, temp = {}, {}, {}
+defaults = {
+    [script] = {
+        Scale = 1.0,
+        LoadTheme = 'Default',
+        locked = false,
+    },
+}
 ---comment Check to see if the file we want to work on exists.
 ---@param name string -- Full Path to file
 ---@return boolean -- returns true if the file exists and false otherwise
@@ -48,6 +57,49 @@ local function loadTheme()
 		theme = require('themes.lua')
 	end
 	themeName = theme.LoadTheme or 'notheme'
+end
+
+---comment Writes settings from the settings table passed to the setting file (full path required)
+-- Uses mq.pickle to serialize the table and write to file
+---@param file string -- File Name and path
+---@param settings table -- Table of settings to write
+local function writeSettings(file, settings)
+    mq.pickle(file, settings)
+end
+
+local function loadSettings()
+    if not File_Exists(configFile) then
+        mq.pickle(configFile, defaults)
+        loadSettings()
+    else
+
+    -- Load settings from the Lua config file
+    temp = {}
+    settings = dofile(configFile)
+    temp = settings[script]
+    end
+
+    loadTheme()
+
+    if settings[script].locked == nil then
+        settings[script].locked = false
+    end
+
+    if settings[script].Scale == nil then
+        settings[script].Scale = 1
+    end
+
+    if not settings[script].LoadTheme then
+        settings[script].LoadTheme = theme.LoadTheme
+    end
+    locked = settings[script].locked
+    ZoomLvl = settings[script].Scale
+
+    themeName = settings[script].LoadTheme
+
+    writeSettings(configFile, settings)
+
+    temp = settings[script]
 end
 
 ---comment
@@ -213,7 +265,7 @@ local function DrawGroupMember(id)
     ImGui.SetWindowFontScale(ZoomLvl * 0.75)
     if not member.OtherZone() then
 
-        if member.PctHPs() <= 0 then
+        if member.PctHPs() <= 0  or member.PctHPs() == nil then
 				ImGui.PushStyleColor(ImGuiCol.PlotHistogram,(COLOR.color('purple')))
             elseif member.PctHPs() < 15 then
 				ImGui.PushStyleColor(ImGuiCol.PlotHistogram,(COLOR.color('pink')))
@@ -319,7 +371,8 @@ local function GUI_Group(open)
         if ImGui.Button(lockedIcon) then
             --ImGuiWindowFlags.NoMove
             locked = not locked
-
+            settings[script].locked = locked
+            writeSettings(configFile, settings)
         end
         if ImGui.IsItemHovered() then
             ImGui.BeginTooltip()
@@ -444,7 +497,7 @@ end
 local function MyGroupConf_GUI(open)
 	if not openConfigGUI then return end
 	ColorCountConf = 0
-	
+
 	ColorCountConf = DrawTheme(ColorCountConf, themeName)
 	open, openConfigGUI = ImGui.Begin("MyGroup Conf", open, bit32.bor(ImGuiWindowFlags.None, ImGuiWindowFlags.NoCollapse, ImGuiWindowFlags.AlwaysAutoResize))
 	ImGui.SetWindowFontScale(ZoomLvl)
@@ -467,6 +520,7 @@ local function MyGroupConf_GUI(open)
 			if ImGui.Selectable(data.Name, isSelected) then
 				theme.LoadTheme = data.Name
 				themeName = theme.LoadTheme
+                settings[script].LoadTheme = themeName
 				-- useThemeName = themeName
 			end
 		end
@@ -480,10 +534,12 @@ local function MyGroupConf_GUI(open)
 	end
 	if ZoomLvl ~= tmpZoom then
 		ZoomLvl = tmpZoom
+        settings[script].Scale = ZoomLvl
 	end
 
 	if ImGui.Button('close') then
 		openConfigGUI = false
+        writeSettings(configFile,settings)
 	end
 
 	if ColorCountConf > 0 then ImGui.PopStyleColor(ColorCountConf) end
@@ -493,7 +549,7 @@ local function MyGroupConf_GUI(open)
 end
 
 local function init()
-	loadTheme()
+	loadSettings()
 	mq.imgui.init('GUI_MyGroup', GUI_Group)
 	mq.imgui.init('GUI_ConfMyGroup', MyGroupConf_GUI)
 end
