@@ -423,7 +423,7 @@ local function GUI_Group(open)
             ImGui.BeginGroup()
             DrawGroupMember(i)
             ImGui.EndGroup()
-
+            ImGui.SetWindowFontScale(ZoomLvl)
         end
 
     end
@@ -457,7 +457,7 @@ local function GUI_Group(open)
 
     local meID = mq.TLO.Me.ID()
 
-    if ImGui.Button('ComeTo\n\tMe') then
+    if ImGui.Button('Come\nTo Me') then
         if useEQBC then
             mq.cmdf("/bcaa //nav spawn id %s", meID)
         else
