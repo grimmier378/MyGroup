@@ -602,14 +602,6 @@ local function MyGroupConf_GUI(open)
         useEQBC = tmpComms
     end
 
-    ImGui.SameLine()
-
-    local tmpPet = showPet
-    tmpPet = ImGui.Checkbox('show Pet', tmpPet)
-    if tmpPet ~= showPet then
-        showPet = tmpPet
-    end
-
     local tmpMana = showMana
     tmpMana = ImGui.Checkbox('Mana', tmpMana)
     if tmpMana ~= showMana then
@@ -624,7 +616,15 @@ local function MyGroupConf_GUI(open)
         showEnd = tmpEnd
     end
 
-	if ImGui.Button('close') then
+    ImGui.SameLine()
+
+    local tmpPet = showPet
+    tmpPet = ImGui.Checkbox('Show Pet', tmpPet)
+    if tmpPet ~= showPet then
+        showPet = tmpPet
+    end
+
+	if ImGui.Button('Close') then
 		openConfigGUI = false
         settings = dofile(configFile)
         settings[script].ShowMana = showMana
