@@ -35,11 +35,13 @@ local themeName = 'Default'
 local locked = false
 local script = 'MyGroup'
 local defaults, settings, temp = {}, {}, {}
+local useEQBC = false
 defaults = {
     [script] = {
         Scale = 1.0,
         LoadTheme = 'Default',
         locked = false,
+        UseEQBC = false,
     },
 }
 ---comment Check to see if the file we want to work on exists.
@@ -93,6 +95,12 @@ local function loadSettings()
         settings[script].LoadTheme = themeName
     end
 
+    if settings[script].UseEQBC == nil then
+        settings[script].UseEQBC = useEQBC
+    end
+
+
+    useEQBC = settings[script].UseEQBC
     locked = settings[script].locked
     ZoomLvl = settings[script].Scale
     themeName = settings[script].LoadTheme
@@ -319,6 +327,13 @@ local function DrawGroupMember(id)
         if ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Left) then
             mq.cmdf("/target id %s", member.ID())
         end
+        if ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Right) then
+            if useEQBC then
+                mq.cmdf("/bct %s //foreground", member.Name())
+            else
+                mq.cmdf("/dex %s /foreground", member.Name())
+            end
+        end
 
         if member.Pet() ~= 'NO PET' then
             ImGui.PushStyleColor(ImGuiCol.PlotHistogram,(COLOR.color('green2')))
@@ -396,6 +411,7 @@ local function GUI_Group(open)
             ImGui.BeginGroup()
             DrawGroupMember(i)
             ImGui.EndGroup()
+
         end
 
     end
@@ -429,62 +445,51 @@ local function GUI_Group(open)
 
     local meID = mq.TLO.Me.ID()
 
-    if ImGui.Button('Come\nToMe') then
-        mq.cmdf("/dgge /nav spawn id %s", meID)
-    end
-
-    ImGui.SameLine()
-
-    if followMe then
-
-        ImGui.PushStyleColor(ImGuiCol.Button, COLOR.color('pink'))
-        if ImGui.Button('Follow\nMe') then
-
-            followMe = not followMe
-
-            if followMe then
-					mq.cmdf("/multiline ; /dgge /nav stop; /dgge /afollow spawn %s", meID)
-                else
-					mq.cmd("/dgge /nav stop")
-            end
-
-        end
-
-        ImGui.PopStyleColor(1)
-
+    if ImGui.Button('ComeTo\nMe') then
+        if useEQBC then
+            mq.cmdf("/bcaa //nav spawn id %s", meID)
         else
-
-        if ImGui.Button('Follow\nMe') then
-            followMe = not followMe
-
-            if followMe then
-					mq.cmdf("/multiline ; /dgge /nav stop; /dgge /afollow spawn %s", meID)
-				else
-					mq.cmd("/dgge /nav stop")
-            end
-
+            mq.cmdf("/dgge /nav spawn id %s", meID)
         end
     end
 
     ImGui.SameLine()
 
-    if mimic then
-			ImGui.PushStyleColor(ImGuiCol.Button, COLOR.color('pink'))
+    
+        local tmpFollow = followMe
+        if followMe then ImGui.PushStyleColor(ImGuiCol.Button, COLOR.color('pink')) end
+        if ImGui.Button('Follow\n  Me') then
+            if not followMe then
+				if useEQBC then	
+                    mq.cmdf("/multiline ; /dcaa //nav stop; /dcaa //afollow spawn %s", meID)
+                else
+                    mq.cmdf("/multiline ; /dgge /nav stop; /dgge /afollow spawn %s", meID)
+                end
+                else
+					if useEQBC then
+                        mq.cmd("/bcaa //nav stop")
+                    else
+                        mq.cmd("/dgge /nav stop")
+                    end
+            end
+            tmpFollow = not tmpFollow
+        end
+        if followMe then ImGui.PopStyleColor(1) end
+        followMe = tmpFollow
 
+    ImGui.SameLine()
+            local tmpMimic = mimic
+            if mimic then ImGui.PushStyleColor(ImGuiCol.Button, COLOR.color('pink')) end
 			if ImGui.Button('Mimic\nMe') then
-				mq.cmd("/groupinfo mimicme off")
-				mimic = not mimic
+                if mimic then
+                    mq.cmd("/groupinfo mimicme off")
+                else
+                    mq.cmd("/groupinfo mimicme on")
+                end
+				tmpMimic = not tmpMimic
 			end
-
-			ImGui.PopStyleColor(1)
-
-		else
-
-			if ImGui.Button('Mimic\nMe') then
-				mq.cmd("/groupinfo mimicme on")
-				mimic = not mimic
-			end
-	end
+            if mimic then ImGui.PopStyleColor(1) end
+            mimic = tmpMimic
 
     ImGui.PopStyleVar()
     ImGui.Spacing()
@@ -546,9 +551,16 @@ local function MyGroupConf_GUI(open)
         settings[script].Scale = ZoomLvl
 	end
 
+    local tmpComms = useEQBC
+    tmpComms = ImGui.Checkbox('Use EQBC', tmpComms)
+    if tmpComms ~= useEQBC then
+        useEQBC = tmpComms
+    end
+
 	if ImGui.Button('close') then
 		openConfigGUI = false
         settings = dofile(configFile)
+        settings[script].UseEQBC = useEQBC
         settings[script].Scale = ZoomLvl
         settings[script].LoadTheme = themeName
         settings[script].locked = locked
