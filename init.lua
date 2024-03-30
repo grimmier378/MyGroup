@@ -197,14 +197,13 @@ local function DrawGroupMember(id)
         ImGui.SetWindowFontScale(ZoomLvl * 0.75)
         if member.LineOfSight() then
 				ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, .5)
-				ImGui.Text(Icons.MD_VISIBILITY_OFF)
-				ImGui.PopStyleColor()
+				ImGui.Text(Icons.MD_VISIBILITY)
+
             else
 				ImGui.PushStyleColor(ImGuiCol.Text, 0.9, 0, 0, .5)
 				ImGui.Text(Icons.MD_VISIBILITY_OFF)
-				ImGui.PopStyleColor()
         end
-
+        ImGui.PopStyleColor()
 
         ImGui.SetWindowFontScale(ZoomLvl * 0.91)
 
@@ -387,9 +386,11 @@ local function GUI_Group(open)
     if not show then
         ImGui.PopStyleVar()
 		if ColorCount > 0 then ImGui.PopStyleColor(ColorCount) end
+        ImGui.SetWindowFontScale(1)
         ImGui.End()
         return open
     end
+    ImGui.SetWindowFontScale(1)
     ImGui.BeginGroup()
     if ImGui.BeginMenuBar() then
         local lockedIcon = locked and Icons.FA_LOCK .. '##lockTabButton_MyChat' or
@@ -511,7 +512,7 @@ local function GUI_Group(open)
     if ImGui.IsItemHovered() then
         ImGui.SetWindowFocus("My Group##MyGroup"..mq.TLO.Me.DisplayName())
     end
-
+    ImGui.SetWindowFontScale(1)
     ImGui.End()
 
     return open
@@ -524,12 +525,11 @@ local function MyGroupConf_GUI(open)
 
 	ColorCountConf = DrawTheme(ColorCountConf, themeName)
 	open, openConfigGUI = ImGui.Begin("MyGroup Conf", open, bit32.bor(ImGuiWindowFlags.None, ImGuiWindowFlags.NoCollapse, ImGuiWindowFlags.AlwaysAutoResize))
-	ImGui.SetWindowFontScale(ZoomLvl)
 	if not openConfigGUI then
 		openConfigGUI = false
 		open = false
 		if ColorCountConf > 0 then ImGui.PopStyleColor(ColorCountConf) end
-		ImGui.SetWindowFontScale(ZoomLvl)
+        ImGui.SetWindowFontScale(1)
 		ImGui.End()
 		return open
 	end
@@ -579,7 +579,7 @@ local function MyGroupConf_GUI(open)
 	end
 
 	if ColorCountConf > 0 then ImGui.PopStyleColor(ColorCountConf) end
-	ImGui.SetWindowFontScale(ZoomLvl)
+    ImGui.SetWindowFontScale(1)
 	ImGui.End()
 
 end
