@@ -29,10 +29,25 @@ local configFile = mq.configDir .. '/MyUI_Configs.lua'
 local ColorCount, ColorCountConf = 0, 0
 local tPlayerFlags = bit32.bor(ImGuiTableFlags.NoBorders, ImGuiTableFlags.NoBordersInBody, ImGuiTableFlags.NoPadInnerX,
 ImGuiTableFlags.NoPadOuterX, ImGuiTableFlags.Resizable, ImGuiTableFlags.SizingFixedFit)
-local manaClass = {[1] = 'WIZ',[2] = 'MAG', [3] = 'NEC',[4] =  'CLR',[5] =  'DRU', [6] = 'SHM', [7] = 'RNG',[8] =  'SHD',[9] =  'PAL',[10] =  'BST',[12] =  'BRD',}
+
+local manaClass = {
+    [1] = 'WIZ',
+    [2] = 'MAG',
+    [3] = 'NEC',
+    [4] = 'ENC',
+    [5] = 'DRU',
+    [6] = 'SHM',
+    [7] = 'CLR',
+    [8] = 'BST',
+    [9] = 'BRD',
+    [10] = 'PAL',
+    [12] = 'RNG',
+    [13] = 'SHD',
+}
+
 local lastTar = mq.TLO.Target.ID() or 0
 local themeName = 'Default'
-local locked = false
+local locked, showMana, showEnd, showPet = false, true, true, true
 local script = 'MyGroup'
 local defaults, settings, temp = {}, {}, {}
 local useEQBC = false
@@ -42,6 +57,9 @@ defaults = {
         LoadTheme = 'Default',
         locked = false,
         UseEQBC = false,
+        ShowMana = true, 
+        ShowEnd = true, 
+        ShowPet = true,
     },
 }
 ---comment Check to see if the file we want to work on exists.
@@ -99,7 +117,21 @@ local function loadSettings()
         settings[script].UseEQBC = useEQBC
     end
 
+    if settings[script].ShowMana == nil then
+        settings[script].ShowMana = showMana
+    end
 
+    if settings[script].ShowEnd == nil then
+        settings[script].ShowEnd = showEnd
+    end
+
+    if settings[script].ShowPet == nil then
+        settings[script].ShowPet = showPet
+    end
+
+    showPet = settings[script].ShowPet
+    showEnd = settings[script].ShowEnd
+    showMana = settings[script].ShowMana
     useEQBC = settings[script].UseEQBC
     locked = settings[script].locked
     ZoomLvl = settings[script].Scale
@@ -302,7 +334,7 @@ local function DrawGroupMember(id)
         end
 
         --My Mana Bar
-
+    if showMana then
         for i, v in pairs(manaClass) do
             if string.find(member.Class.ShortName(), v) then
                 ImGui.PushStyleColor(ImGuiCol.PlotHistogram,(COLOR.color('light blue2')))
@@ -315,10 +347,10 @@ local function DrawGroupMember(id)
                     ImGui.Text(member.PctMana()..'% Mana')
                     ImGui.EndTooltip()
                 end
-
             end
         end
-
+    end
+    if showEnd then
         --My Endurance bar
         ImGui.PushStyleColor(ImGuiCol.PlotHistogram,(COLOR.color('yellow2')))
         ImGui.ProgressBar(((tonumber(member.PctEndurance() or 0)) / 100), ImGui.GetContentRegionAvail(), 7, '##pctEndurance'..id)
@@ -330,10 +362,11 @@ local function DrawGroupMember(id)
             ImGui.Text(member.PctEndurance()..'% Endurance')
             ImGui.EndTooltip()
         end
+    end
 
         -- Pet Health
         ImGui.EndGroup()
-
+    if showPet then
         if ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Left) then
             mq.cmdf("/target id %s", member.ID())
         end
@@ -359,6 +392,7 @@ local function DrawGroupMember(id)
                 end
             end
         end
+    end
         ImGui.Separator()
         else
         ImGui.Dummy(ImGui.GetContentRegionAvail(), 20)
@@ -568,9 +602,34 @@ local function MyGroupConf_GUI(open)
         useEQBC = tmpComms
     end
 
+    ImGui.SameLine()
+
+    local tmpPet = showPet
+    tmpPet = ImGui.Checkbox('show Pet', tmpPet)
+    if tmpPet ~= showPet then
+        showPet = tmpPet
+    end
+
+    local tmpMana = showMana
+    tmpMana = ImGui.Checkbox('Mana', tmpMana)
+    if tmpMana ~= showMana then
+        showMana = tmpMana
+    end
+
+    ImGui.SameLine()
+
+    local tmpEnd = showEnd
+    tmpEnd = ImGui.Checkbox('Endurance', tmpEnd)
+    if tmpEnd ~= showEnd then
+        showEnd = tmpEnd
+    end
+
 	if ImGui.Button('close') then
 		openConfigGUI = false
         settings = dofile(configFile)
+        settings[script].ShowMana = showMana
+        settings[script].ShowEnd = showEnd
+        settings[script].ShowPet = showPet
         settings[script].UseEQBC = useEQBC
         settings[script].Scale = ZoomLvl
         settings[script].LoadTheme = themeName
