@@ -152,6 +152,7 @@ end
 
 local function DrawGroupMember(id)
     local member = mq.TLO.Group.Member(id)
+    local memberName = member.Name()
     function GetInfoToolTip()
         if not member.OtherZone() then
 
@@ -166,7 +167,7 @@ local function DrawGroupMember(id)
 
         end
     end
-
+    
     ImGui.BeginGroup()
 
     if ImGui.BeginTable("##playerInfo", 4, tPlayerFlags) then
@@ -181,7 +182,7 @@ local function DrawGroupMember(id)
         ImGui.TableSetColumnIndex(0)
         
         -- local memberName = member.Name()
-        local memberName = member.Name()
+        
         ImGui.SetWindowFontScale(ZoomLvl * 0.8)
         ImGui.Text( 'F'..tostring(id+1))
         ImGui.SetWindowFontScale(ZoomLvl)
@@ -256,15 +257,25 @@ local function DrawGroupMember(id)
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, 2, 0)
         ImGui.SetWindowFontScale(ZoomLvl * 1)
         ImGui.Text(tostring(member.Level() or 0))
-
         if ImGui.IsItemHovered() then
             ImGui.BeginTooltip()
-            ImGui.Text(GetInfoToolTip())
+            if not member.OtherZone() then
+                ImGui.Text(GetInfoToolTip())
+            else
+                ImGui.Text('Not in Zone!')
+            end
             ImGui.EndTooltip()
         end
         
         ImGui.PopStyleVar()
         ImGui.EndTable()
+        if ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Right) then
+            if useEQBC then
+                mq.cmdf("/bct %s //foreground", memberName)
+            else
+                mq.cmdf("/dex %s /foreground", memberName)
+            end
+        end
     end
     ImGui.Separator()
 
@@ -329,9 +340,9 @@ local function DrawGroupMember(id)
         end
         if ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Right) then
             if useEQBC then
-                mq.cmdf("/bct %s //foreground", member.Name())
+                mq.cmdf("/bct %s //foreground", memberName)
             else
-                mq.cmdf("/dex %s /foreground", member.Name())
+                mq.cmdf("/dex %s /foreground", memberName)
             end
         end
 
@@ -445,7 +456,7 @@ local function GUI_Group(open)
 
     local meID = mq.TLO.Me.ID()
 
-    if ImGui.Button('ComeTo\nMe') then
+    if ImGui.Button('ComeTo\n\tMe') then
         if useEQBC then
             mq.cmdf("/bcaa //nav spawn id %s", meID)
         else
@@ -458,7 +469,7 @@ local function GUI_Group(open)
     
         local tmpFollow = followMe
         if followMe then ImGui.PushStyleColor(ImGuiCol.Button, COLOR.color('pink')) end
-        if ImGui.Button('Follow\n  Me') then
+        if ImGui.Button('Follow\n\tMe') then
             if not followMe then
 				if useEQBC then	
                     mq.cmdf("/multiline ; /dcaa //nav stop; /dcaa //afollow spawn %s", meID)
@@ -480,7 +491,7 @@ local function GUI_Group(open)
     ImGui.SameLine()
             local tmpMimic = mimic
             if mimic then ImGui.PushStyleColor(ImGuiCol.Button, COLOR.color('pink')) end
-			if ImGui.Button('Mimic\nMe') then
+			if ImGui.Button('Mimic\n   Me') then
                 if mimic then
                     mq.cmd("/groupinfo mimicme off")
                 else
