@@ -324,7 +324,7 @@ local function DrawGroupMember(id)
             ImGui.PushStyleColor(ImGuiCol.PlotHistogram,(COLOR.color('red')))
         end
         
-        ImGui.ProgressBar(((tonumber(member.PctHPs() or 0)) / 100), ImGui.GetContentRegionAvail(), 7, '##pctHps'..id)
+        ImGui.ProgressBar(((tonumber(member.PctHPs() or 0)) / 100), ImGui.GetContentRegionAvail(), 7 * ZoomLvl, '##pctHps'..id)
         ImGui.PopStyleColor()
         
         if ImGui.IsItemHovered() then
@@ -339,7 +339,7 @@ local function DrawGroupMember(id)
             for i, v in pairs(manaClass) do
                 if string.find(member.Class.ShortName(), v) then
                     ImGui.PushStyleColor(ImGuiCol.PlotHistogram,(COLOR.color('light blue2')))
-                    ImGui.ProgressBar(((tonumber(member.PctMana() or 0)) / 100), ImGui.GetContentRegionAvail(), 7, '##pctMana'..id)
+                    ImGui.ProgressBar(((tonumber(member.PctMana() or 0)) / 100), ImGui.GetContentRegionAvail(), 7 * ZoomLvl, '##pctMana'..id)
                     ImGui.PopStyleColor()
                     
                     if ImGui.IsItemHovered() then
@@ -354,7 +354,7 @@ local function DrawGroupMember(id)
         if showEnd then
             --My Endurance bar
             ImGui.PushStyleColor(ImGuiCol.PlotHistogram,(COLOR.color('yellow2')))
-            ImGui.ProgressBar(((tonumber(member.PctEndurance() or 0)) / 100), ImGui.GetContentRegionAvail(), 7, '##pctEndurance'..id)
+            ImGui.ProgressBar(((tonumber(member.PctEndurance() or 0)) / 100), ImGui.GetContentRegionAvail(), 7 * ZoomLvl, '##pctEndurance'..id)
             ImGui.PopStyleColor()
             
             if ImGui.IsItemHovered() then
@@ -382,7 +382,7 @@ local function DrawGroupMember(id)
             
             if member.Pet() ~= 'NO PET' then
                 ImGui.PushStyleColor(ImGuiCol.PlotHistogram,(COLOR.color('green2')))
-                ImGui.ProgressBar(((tonumber(member.Pet.PctHPs() or 0)) / 100), ImGui.GetContentRegionAvail(), 4, '##PetHp'..id)
+                ImGui.ProgressBar(((tonumber(member.Pet.PctHPs() or 0)) / 100), ImGui.GetContentRegionAvail(), 4 * ZoomLvl, '##PetHp'..id)
                 ImGui.PopStyleColor()
                 if ImGui.IsItemHovered() then
                     ImGui.BeginTooltip()
@@ -570,8 +570,8 @@ local function MyGroupConf_GUI(open)
         ImGui.End()
         return open
     end
-    ImGui.SameLine()
     
+    ImGui.SeparatorText("Theme##"..script)
     ImGui.Text("Cur Theme: %s", themeName)
     -- Combo Box Load Theme
     if ImGui.BeginCombo("Load Theme##MyGroup", themeName) then
@@ -588,7 +588,7 @@ local function MyGroupConf_GUI(open)
         ImGui.EndCombo()
         
     end
-    
+    ImGui.SeparatorText("Scaling##"..script)
     -- Slider for adjusting zoom level
     local tmpZoom = ZoomLvl
     if ZoomLvl then
@@ -598,15 +598,15 @@ local function MyGroupConf_GUI(open)
         ZoomLvl = tmpZoom
         settings[script].Scale = ZoomLvl
     end
-    
+    ImGui.SeparatorText("Toggles##"..script)
     local tmpComms = useEQBC
-    tmpComms = ImGui.Checkbox('Use EQBC', tmpComms)
+    tmpComms = ImGui.Checkbox('Use EQBC##'..script, tmpComms)
     if tmpComms ~= useEQBC then
         useEQBC = tmpComms
     end
     
     local tmpMana = showMana
-    tmpMana = ImGui.Checkbox('Mana', tmpMana)
+    tmpMana = ImGui.Checkbox('Mana##'..script, tmpMana)
     if tmpMana ~= showMana then
         showMana = tmpMana
     end
@@ -614,7 +614,7 @@ local function MyGroupConf_GUI(open)
     ImGui.SameLine()
     
     local tmpEnd = showEnd
-    tmpEnd = ImGui.Checkbox('Endurance', tmpEnd)
+    tmpEnd = ImGui.Checkbox('Endurance##'..script, tmpEnd)
     if tmpEnd ~= showEnd then
         showEnd = tmpEnd
     end
@@ -622,12 +622,12 @@ local function MyGroupConf_GUI(open)
     ImGui.SameLine()
     
     local tmpPet = showPet
-    tmpPet = ImGui.Checkbox('Show Pet', tmpPet)
+    tmpPet = ImGui.Checkbox('Show Pet##'..script, tmpPet)
     if tmpPet ~= showPet then
         showPet = tmpPet
     end
-    
-    if ImGui.Button('Close') then
+    ImGui.SeparatorText("Save and Close##"..script)
+    if ImGui.Button('Save and Close##'..script) then
         openConfigGUI = false
         settings = dofile(configFile)
         settings[script].ShowMana = showMana
