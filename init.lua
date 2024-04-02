@@ -300,18 +300,10 @@ local function DrawGroupMember(id)
         
         ImGui.PopStyleVar()
         ImGui.EndTable()
-        ImGui.EndGroup()
-        if ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Right) then
-            if useEQBC then
-                mq.cmdf("/bct %s //foreground", memberName)
-                else
-                mq.cmdf("/dex %s /foreground", memberName)
-            end
-        end
     end
     ImGui.Separator()
     
-    -- My Health Bar
+    -- Health Bar
     
     ImGui.SetWindowFontScale(ZoomLvl * 0.75)
     if not member.OtherZone() then
@@ -364,11 +356,7 @@ local function DrawGroupMember(id)
                 ImGui.EndTooltip()
             end
         end
-        
-        -- Pet Health
-        
-        if showPet then
-            ImGui.BeginGroup()
+        ImGui.EndGroup()
             if ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Left) then
                 mq.cmdf("/target id %s", member.ID())
             end
@@ -379,7 +367,11 @@ local function DrawGroupMember(id)
                     mq.cmdf("/dex %s /foreground", memberName)
                 end
             end
-            
+
+            -- Pet Health
+
+        if showPet then
+            ImGui.BeginGroup()            
             if member.Pet() ~= 'NO PET' then
                 ImGui.PushStyleColor(ImGuiCol.PlotHistogram,(COLOR.color('green2')))
                 ImGui.ProgressBar(((tonumber(member.Pet.PctHPs() or 0)) / 100), ImGui.GetContentRegionAvail(), 4 * ZoomLvl, '##PetHp'..id)
