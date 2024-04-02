@@ -359,6 +359,9 @@ local function DrawGroupMember(id)
         ImGui.EndGroup()
             if ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Left) then
                 mq.cmdf("/target id %s", member.ID())
+                if mq.TLO.Cursor() then
+                    mq.cmdf('/multiline ; /tar id %s; /face; /if (${Cursor.ID}) /click left target',member.ID())
+                end
             end
             if ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Right) then
                 if useEQBC then
@@ -383,6 +386,9 @@ local function DrawGroupMember(id)
                     ImGui.EndTooltip()
                     if ImGui.IsMouseClicked(0) then
                         mq.cmdf("/target id %s", member.Pet.ID())
+                        if mq.TLO.Cursor() then
+                            mq.cmdf('/multiline ; /tar id %s; /face; /if (${Cursor.ID}) /click left target',member.Pet.ID())
+                        end
                     end
                 end
             end
