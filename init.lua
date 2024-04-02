@@ -356,17 +356,6 @@ local function DrawGroupMember(id)
                 ImGui.EndTooltip()
             end
         end
-        ImGui.EndGroup()
-            if ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Left) then
-                mq.cmdf("/target id %s", member.ID())
-            end
-            if ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Right) then
-                if useEQBC then
-                    mq.cmdf("/bct %s //foreground", memberName)
-                    else
-                    mq.cmdf("/dex %s /foreground", memberName)
-                end
-            end
 
             -- Pet Health
 
@@ -383,6 +372,9 @@ local function DrawGroupMember(id)
                     ImGui.EndTooltip()
                     if ImGui.IsMouseClicked(0) then
                         mq.cmdf("/target id %s", member.Pet.ID())
+                        if mq.TLO.Cursor() then
+                            mq.cmdf('/multiline ; /tar id %s; /face; /if (${Cursor.ID}) /click left target',member.Pet.ID())
+                        end
                     end
                 end
             end
@@ -392,6 +384,20 @@ local function DrawGroupMember(id)
         else
         ImGui.Dummy(ImGui.GetContentRegionAvail(), 20)
         
+    end
+    ImGui.EndGroup()
+    if ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Left) then
+        mq.cmdf("/target id %s", member.ID())
+        if mq.TLO.Cursor() then
+            mq.cmdf('/multiline ; /tar id %s; /face; /if (${Cursor.ID}) /click left target',member.ID())
+        end
+    end
+    if ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Right) then
+        if useEQBC then
+            mq.cmdf("/bct %s //foreground", memberName)
+            else
+            mq.cmdf("/dex %s /foreground", memberName)
+        end
     end
 end
 
