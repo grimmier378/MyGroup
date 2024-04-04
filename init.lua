@@ -599,6 +599,11 @@ local function MyGroupConf_GUI(open)
         ImGui.EndCombo()
         
     end
+
+    if ImGui.Button('Reload Theme File') then
+        loadTheme()
+    end
+
     ImGui.SeparatorText("Scaling##"..script)
     -- Slider for adjusting zoom level
     local tmpZoom = ZoomLvl
