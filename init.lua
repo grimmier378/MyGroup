@@ -26,7 +26,7 @@ local theme = {}
 local ZoomLvl = 1
 local themeFile = mq.configDir .. '/MyThemeZ.lua'
 local configFile = mq.configDir .. '/MyUI_Configs.lua'
-local ColorCount, ColorCountConf = 0, 0
+local ColorCount, ColorCountConf, StyleCount, StyleCountConf = 0, 0, 0, 0
 local tPlayerFlags = bit32.bor(ImGuiTableFlags.NoBorders, ImGuiTableFlags.NoBordersInBody, ImGuiTableFlags.NoPadInnerX,
 ImGuiTableFlags.NoPadOuterX, ImGuiTableFlags.Resizable, ImGuiTableFlags.SizingFixedFit)
 
@@ -143,20 +143,34 @@ local function loadSettings()
 end
 
 ---comment
----@param counter integer -- the counter used for this window to keep track of color changes
 ---@param themeName string -- name of the theme to load form table
----@return integer -- returns the new counter value
-local function DrawTheme(counter, themeName)
-    -- Push Theme Colors
+---@return integer, integer -- returns the new counter values 
+local function DrawTheme(themeName)
+    local StyleCounter = 0
+    local ColorCounter = 0
     for tID, tData in pairs(theme.Theme) do
         if tData.Name == themeName then
             for pID, cData in pairs(theme.Theme[tID].Color) do
                 ImGui.PushStyleColor(pID, ImVec4(cData.Color[1], cData.Color[2], cData.Color[3], cData.Color[4]))
-                counter = counter +1
+                ColorCounter = ColorCounter + 1
+            end
+            if tData['Style'] ~= nil then
+                if next(tData['Style']) ~= nil then
+                    
+                    for sID, sData in pairs (theme.Theme[tID].Style) do
+                        if sData.Size ~= nil then
+                            ImGui.PushStyleVar(sID, sData.Size)
+                            StyleCounter = StyleCounter + 1
+                            elseif sData.X ~= nil then
+                            ImGui.PushStyleVar(sID, sData.X, sData.Y)
+                            StyleCounter = StyleCounter + 1
+                        end
+                    end
+                end
             end
         end
     end
-    return counter
+    return ColorCounter, StyleCounter
 end
 
 ---@param type string
@@ -403,6 +417,7 @@ end
 
 local function GUI_Group(open)
     ColorCount = 0
+    StyleCount = 0
     if not ShowGUI then return end
     
     if TLO.Me.Zoning() then return end
@@ -410,16 +425,14 @@ local function GUI_Group(open)
     if locked then
         flags = bit32.bor(ImGuiWindowFlags.NoScrollbar, ImGuiWindowFlags.NoMove, ImGuiWindowFlags.MenuBar)
     end
-    --Rounded corners
-    ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 10)
     -- Default window size
     ImGui.SetNextWindowSize(216, 239, ImGuiCond.FirstUseEver)
     local show = false
-    ColorCount = DrawTheme(ColorCount, themeName)
+    ColorCount, StyleCount = DrawTheme(themeName)
     open, show = ImGui.Begin("My Group##MyGroup"..mq.TLO.Me.DisplayName(), open, flags)
     
     if not show then
-        ImGui.PopStyleVar()
+        if StyleCount > 0 then ImGui.PopStyleVar(StyleCount) end
         if ColorCount > 0 then ImGui.PopStyleColor(ColorCount) end
         ImGui.SetWindowFontScale(1)
         ImGui.End()
@@ -537,19 +550,18 @@ local function GUI_Group(open)
     end
     if mimic then ImGui.PopStyleColor(1) end
     mimic = tmpMimic
-    
-    ImGui.PopStyleVar()
-    ImGui.Spacing()
-    if ColorCount > 0 then ImGui.PopStyleColor(ColorCount) end
-    
     ImGui.EndGroup()
-    
     if ImGui.IsItemHovered() then
         ImGui.SetWindowFocus("My Group##MyGroup"..mq.TLO.Me.DisplayName())
     end
+
+    if StyleCount > 0 then ImGui.PopStyleVar(StyleCount) end
+    ImGui.Spacing()
+    if ColorCount > 0 then ImGui.PopStyleColor(ColorCount) end
+
     ImGui.SetWindowFontScale(1)
     ImGui.End()
-    
+
     return open
 end
 
@@ -557,12 +569,13 @@ end
 local function MyGroupConf_GUI(open)
     if not openConfigGUI then return end
     ColorCountConf = 0
-    
-    ColorCountConf = DrawTheme(ColorCountConf, themeName)
+    StyleCountConf = 0
+    ColorCountConf, StyleCountConf = DrawTheme(themeName)
     open, openConfigGUI = ImGui.Begin("MyGroup Conf", open, bit32.bor(ImGuiWindowFlags.None, ImGuiWindowFlags.NoCollapse, ImGuiWindowFlags.AlwaysAutoResize))
     if not openConfigGUI then
         openConfigGUI = false
         open = false
+        if StyleCountConf > 0 then ImGui.PopStyleVar(StyleCountConf) end
         if ColorCountConf > 0 then ImGui.PopStyleColor(ColorCountConf) end
         ImGui.SetWindowFontScale(1)
         ImGui.End()
@@ -638,6 +651,7 @@ local function MyGroupConf_GUI(open)
         writeSettings(configFile,settings)
     end
     
+    if StyleCountConf > 0 then ImGui.PopStyleVar(StyleCountConf) end
     if ColorCountConf > 0 then ImGui.PopStyleColor(ColorCountConf) end
     ImGui.SetWindowFontScale(1)
     ImGui.End()
