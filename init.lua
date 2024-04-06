@@ -439,7 +439,7 @@ local function GUI_Group(open)
         return open
     end
     ImGui.SetWindowFontScale(1)
-    ImGui.BeginGroup()
+
     if ImGui.BeginMenuBar() then
         local lockedIcon = locked and Icons.FA_LOCK .. '##lockTabButton_MyChat' or
         Icons.FA_UNLOCK .. '##lockTablButton_MyChat'
@@ -550,10 +550,7 @@ local function GUI_Group(open)
     end
     if mimic then ImGui.PopStyleColor(1) end
     mimic = tmpMimic
-    ImGui.EndGroup()
-    if ImGui.IsItemHovered() then
-        ImGui.SetWindowFocus("My Group##MyGroup"..mq.TLO.Me.DisplayName())
-    end
+
 
     if StyleCount > 0 then ImGui.PopStyleVar(StyleCount) end
     ImGui.Spacing()
