@@ -190,6 +190,7 @@ local function DrawStatusIcon(iconID, type, txt)
     end
     
     if ImGui.IsItemHovered() then
+        ImGui.SetWindowFontScale(ZoomLvl)
         ImGui.BeginTooltip()
         ImGui.Text(txt)
         ImGui.EndTooltip()
@@ -304,6 +305,7 @@ local function DrawGroupMember(id)
         ImGui.Text(tostring(member.Level() or 0))
         if ImGui.IsItemHovered() then
             ImGui.BeginTooltip()
+            ImGui.SetWindowFontScale(ZoomLvl)
             if not member.OtherZone() then
                 ImGui.Text(GetInfoToolTip())
                 else
@@ -311,7 +313,7 @@ local function DrawGroupMember(id)
             end
             ImGui.EndTooltip()
         end
-        
+        ImGui.SetWindowFontScale(ZoomLvl * 0.75)
         ImGui.PopStyleVar()
         ImGui.EndTable()
     end
@@ -334,10 +336,12 @@ local function DrawGroupMember(id)
         ImGui.PopStyleColor()
         
         if ImGui.IsItemHovered() then
+            ImGui.SetWindowFontScale(ZoomLvl)
             ImGui.BeginTooltip()
             ImGui.Text(member.DisplayName())
             ImGui.Text(member.PctHPs()..'% Health')
             ImGui.EndTooltip()
+            ImGui.SetWindowFontScale(ZoomLvl * 0.75)
         end
         
         --My Mana Bar
@@ -349,10 +353,12 @@ local function DrawGroupMember(id)
                     ImGui.PopStyleColor()
                     
                     if ImGui.IsItemHovered() then
+                        ImGui.SetWindowFontScale(ZoomLvl)
                         ImGui.BeginTooltip()
                         ImGui.Text(member.DisplayName())
                         ImGui.Text(member.PctMana()..'% Mana')
                         ImGui.EndTooltip()
+                        ImGui.SetWindowFontScale(ZoomLvl * 0.75)
                     end
                 end
             end
@@ -364,10 +370,12 @@ local function DrawGroupMember(id)
             ImGui.PopStyleColor()
             
             if ImGui.IsItemHovered() then
+                ImGui.SetWindowFontScale(ZoomLvl)
                 ImGui.BeginTooltip()
                 ImGui.Text(member.DisplayName())
                 ImGui.Text(member.PctEndurance()..'% Endurance')
                 ImGui.EndTooltip()
+                ImGui.SetWindowFontScale(ZoomLvl * 0.75)
             end
         end
 
@@ -381,9 +389,11 @@ local function DrawGroupMember(id)
                 ImGui.PopStyleColor()
                 if ImGui.IsItemHovered() then
                     ImGui.BeginTooltip()
+                    ImGui.SetWindowFontScale(ZoomLvl)
                     ImGui.Text(member.Pet.DisplayName())
                     ImGui.Text(member.Pet.PctHPs()..'% health')
                     ImGui.EndTooltip()
+                    ImGui.SetWindowFontScale(ZoomLvl * 0.75)
                     if ImGui.IsMouseClicked(0) then
                         mq.cmdf("/target id %s", member.Pet.ID())
                         if mq.TLO.Cursor() then
@@ -441,6 +451,7 @@ local function GUI_Group(open)
     ImGui.SetWindowFontScale(1)
 
     if ImGui.BeginMenuBar() then
+        if ZoomLvl > 1.25 then ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, 4,7) end
         local lockedIcon = locked and Icons.FA_LOCK .. '##lockTabButton_MyChat' or
         Icons.FA_UNLOCK .. '##lockTablButton_MyChat'
         if ImGui.Button(lockedIcon) then
@@ -451,15 +462,18 @@ local function GUI_Group(open)
             writeSettings(configFile, settings)
         end
         if ImGui.IsItemHovered() then
+            ImGui.SetWindowFontScale(ZoomLvl)
             ImGui.BeginTooltip()
             ImGui.Text("Lock Window")
             ImGui.EndTooltip()
+            ImGui.SetWindowFontScale(1)
         end
         if ImGui.Button(gIcon..'##PlayerTarg') then
             openConfigGUI = not openConfigGUI
         end
         ImGui.EndMenuBar()
     end
+    ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, 4,3)
     local member = nil
     
     -- Player Information
@@ -552,7 +566,7 @@ local function GUI_Group(open)
     mimic = tmpMimic
 
 
-    if StyleCount > 0 then ImGui.PopStyleVar(StyleCount) end
+    if StyleCount > 0 then ImGui.PopStyleVar(StyleCount) else ImGui.PopStyleVar(1) end
     ImGui.Spacing()
     if ColorCount > 0 then ImGui.PopStyleColor(ColorCount) end
 
