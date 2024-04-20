@@ -62,6 +62,7 @@ defaults = {
         ShowPet = true,
     },
 }
+
 ---comment Check to see if the file we want to work on exists.
 ---@param name string -- Full Path to file
 ---@return boolean -- returns true if the file exists and false otherwise
@@ -100,33 +101,40 @@ local function loadSettings()
     end
     
     loadTheme()
-    
+    local newSetting = false
     if settings[script].locked == nil then
         settings[script].locked = false
+        newSetting = true
     end
     
     if settings[script].Scale == nil then
         settings[script].Scale = 1
+        newSetting = true
     end
     
     if settings[script].LoadTheme == nil then
         settings[script].LoadTheme = themeName
+        newSetting = true
     end
     
     if settings[script].UseEQBC == nil then
         settings[script].UseEQBC = useEQBC
+        newSetting = true
     end
     
     if settings[script].ShowMana == nil then
         settings[script].ShowMana = showMana
+        newSetting = true
     end
     
     if settings[script].ShowEnd == nil then
         settings[script].ShowEnd = showEnd
+        newSetting = true
     end
     
     if settings[script].ShowPet == nil then
         settings[script].ShowPet = showPet
+        newSetting = true
     end
     
     showPet = settings[script].ShowPet
@@ -137,9 +145,8 @@ local function loadSettings()
     ZoomLvl = settings[script].Scale
     themeName = settings[script].LoadTheme
     
-    writeSettings(configFile, settings)
-    
-    temp = settings[script]
+    if newSetting then writeSettings(configFile, settings) end
+
 end
 
 ---comment
@@ -200,9 +207,10 @@ end
 local function DrawGroupMember(id)
     local member = mq.TLO.Group.Member(id)
     local memberName = member.Name()
+    if member == 'NULL' then return end
+
     function GetInfoToolTip()
         if not member.OtherZone() then
-            
             local pInfoToolTip = (member.Name() ..
                 '\t\tlvl: ' .. tostring(member.Level()) ..
                 '\nClass: ' .. member.Class.Name() ..
@@ -211,10 +219,9 @@ local function DrawGroupMember(id)
                 '\nEnd: ' .. tostring(member.CurrentEndurance()) .. ' of ' .. tostring(member.MaxEndurance())
             )
             return pInfoToolTip
-            
         end
     end
-    
+
     ImGui.BeginGroup()
     
     if ImGui.BeginTable("##playerInfo", 4, tPlayerFlags) then
@@ -474,17 +481,18 @@ local function GUI_Group(open)
         ImGui.EndMenuBar()
     end
     ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, 4,3)
-    local member = nil
     
     -- Player Information
     
     if mq.TLO.Me.GroupSize() > 0 then
         
         for i = 1, mq.TLO.Me.GroupSize() -1 do
-            member = mq.TLO.Group.Member(i)
-            ImGui.BeginGroup()
-            DrawGroupMember(i)
-            ImGui.EndGroup()
+            local member = mq.TLO.Group.Member(i)
+            if member ~= 'NULL' then
+                ImGui.BeginGroup()
+                DrawGroupMember(i)
+                ImGui.EndGroup()
+            end
             ImGui.SetWindowFontScale(ZoomLvl)
         end
         
@@ -575,7 +583,6 @@ local function GUI_Group(open)
 
     return open
 end
-
 
 local function MyGroupConf_GUI(open)
     if not openConfigGUI then return end
