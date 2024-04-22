@@ -332,6 +332,13 @@ local function DrawGroupMember(id)
         ImGui.EndTable()
     end
     if ImGui.BeginPopupContextItem("##groupContext" .. tostring(id)) then -- Context menu for the group Roles
+        if ImGui.Selectable('Switch To') then
+            if useEQBC then
+                mq.cmdf("/bct %s //foreground", memberName)
+                else
+                mq.cmdf("/dex %s /foreground", memberName)
+            end
+        end
         if ImGui.BeginMenu('Roles') then
             if ImGui.Selectable('Main Assist') then
                 mq.cmdf("/grouproles set %s 2", memberName)
@@ -443,18 +450,21 @@ local function DrawGroupMember(id)
 
     ImGui.EndGroup()
 
-    if ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Left) then
-        mq.cmdf("/target id %s", member.ID())
-        if TLO.Cursor() then
-            mq.cmdf('/multiline ; /tar id %s; /face; /if (${Cursor.ID}) /click left target',member.ID())
+    if ImGui.IsItemHovered() then
+
+        if ImGui.IsMouseReleased(ImGuiMouseButton.Left)  then
+            mq.cmdf("/target id %s", member.ID())
+            if TLO.Cursor() then
+                mq.cmdf('/multiline ; /tar id %s; /face; /if (${Cursor.ID}) /click left target',member.ID())
+            end
+        elseif ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Right) and ImGui.IsKeyDown(ImGuiMod.Ctrl) then
+            if useEQBC then
+                mq.cmdf("/bct %s //foreground", memberName)
+                else
+                mq.cmdf("/dex %s /foreground", memberName)
+            end
         end
-    end
-    if ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Right) and ImGui.IsKeyDown(ImGuiMod.Ctrl) then
-        if useEQBC then
-            mq.cmdf("/bct %s //foreground", memberName)
-            else
-            mq.cmdf("/dex %s /foreground", memberName)
-        end
+
     end
 
 end
