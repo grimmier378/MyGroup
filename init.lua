@@ -16,20 +16,25 @@ local animSpell = mq.FindTextureAnimation('A_SpellIcons')
 local animItem = mq.FindTextureAnimation('A_DragItem')
 local TLO = mq.TLO
 local winFlag = bit32.bor(ImGuiWindowFlags.NoScrollbar, ImGuiWindowFlags.MenuBar)
-local textureWidth = 26
-local textureHeight = 26
-local mimic = false
-local followMe = false
+local iconWidth, iconHeight = 26, 26
+local mimicMe, followMe = false, false
 local ShowGUI, openGUI, openConfigGUI = true, true, false
-local ver = "v0.22"
-local theme = {}
-local ZoomLvl = 1
+local Scale = 1
 local themeFile = mq.configDir .. '/MyThemeZ.lua'
 local configFile = mq.configDir .. '/MyUI_Configs.lua'
 local ColorCount, ColorCountConf, StyleCount, StyleCountConf = 0, 0, 0, 0
+local lastTar = TLO.Target.ID() or 0
+local themeName = 'Default'
+local locked, showMana, showEnd, showPet = false, true, true, true
+local script = 'MyGroup'
+local defaults, settings, theme = {}, {}, {}
+local useEQBC = false
+
+-- Flags
 local tPlayerFlags = bit32.bor(ImGuiTableFlags.NoBorders, ImGuiTableFlags.NoBordersInBody, ImGuiTableFlags.NoPadInnerX,
 ImGuiTableFlags.NoPadOuterX, ImGuiTableFlags.Resizable, ImGuiTableFlags.SizingFixedFit)
 
+-- Tables
 local manaClass = {
     [1] = 'WIZ',
     [2] = 'MAG',
@@ -45,12 +50,6 @@ local manaClass = {
     [13] = 'SHD',
 }
 
-local lastTar = mq.TLO.Target.ID() or 0
-local themeName = 'Default'
-local locked, showMana, showEnd, showPet = false, true, true, true
-local script = 'MyGroup'
-local defaults, settings, temp = {}, {}, {}
-local useEQBC = false
 defaults = {
     [script] = {
         Scale = 1.0,
@@ -64,10 +63,10 @@ defaults = {
 }
 
 ---comment Check to see if the file we want to work on exists.
----@param name string -- Full Path to file
+---@param fileName string -- Full Path to file
 ---@return boolean -- returns true if the file exists and false otherwise
-local function File_Exists(name)
-    local f=io.open(name,"r")
+local function File_Exists(fileName)
+    local f=io.open(fileName,"r")
     if f~=nil then io.close(f) return true else return false end
 end
 
@@ -77,15 +76,15 @@ local function loadTheme()
         else
         theme = require('themes')
     end
-    themeName = theme.LoadTheme or 'notheme'
+    themeName = theme.LoadTheme or themeName
 end
 
 ---comment Writes settings from the settings table passed to the setting file (full path required)
 -- Uses mq.pickle to serialize the table and write to file
 ---@param file string -- File Name and path
----@param settings table -- Table of settings to write
-local function writeSettings(file, settings)
-    mq.pickle(file, settings)
+---@param table table -- Table of settings to write
+local function writeSettings(file, table)
+    mq.pickle(file, table)
 end
 
 local function loadSettings()
@@ -95,9 +94,8 @@ local function loadSettings()
         else
         
         -- Load settings from the Lua config file
-        temp = {}
         settings = dofile(configFile)
-        temp = settings[script]
+        
     end
     
     loadTheme()
@@ -142,7 +140,7 @@ local function loadSettings()
     showMana = settings[script].ShowMana
     useEQBC = settings[script].UseEQBC
     locked = settings[script].locked
-    ZoomLvl = settings[script].Scale
+    Scale = settings[script].Scale
     themeName = settings[script].LoadTheme
     
     if newSetting then writeSettings(configFile, settings) end
@@ -150,13 +148,13 @@ local function loadSettings()
 end
 
 ---comment
----@param themeName string -- name of the theme to load form table
+---@param tName string -- name of the theme to load form table
 ---@return integer, integer -- returns the new counter values 
-local function DrawTheme(themeName)
+local function DrawTheme(tName)
     local StyleCounter = 0
     local ColorCounter = 0
     for tID, tData in pairs(theme.Theme) do
-        if tData.Name == themeName then
+        if tData.Name == tName then
             for pID, cData in pairs(theme.Theme[tID].Color) do
                 ImGui.PushStyleColor(pID, ImVec4(cData.Color[1], cData.Color[2], cData.Color[3], cData.Color[4]))
                 ColorCounter = ColorCounter + 1
@@ -187,17 +185,17 @@ local function DrawStatusIcon(iconID, type, txt)
     animItem:SetTextureCell(iconID or 3996)
     
     if type == 'item' then
-        ImGui.DrawTextureAnimation(animItem, textureWidth - 11, textureHeight - 11)
+        ImGui.DrawTextureAnimation(animItem, iconWidth - 11, iconHeight - 11)
         elseif type == 'pwcs' then
         local animPWCS = mq.FindTextureAnimation(iconID)
         animPWCS:SetTextureCell(iconID)
-        ImGui.DrawTextureAnimation(animPWCS, textureWidth - 11, textureHeight - 11)
+        ImGui.DrawTextureAnimation(animPWCS, iconWidth - 11, iconHeight - 11)
         else
-        ImGui.DrawTextureAnimation(animSpell, textureWidth - 11, textureHeight - 11)
+        ImGui.DrawTextureAnimation(animSpell, iconWidth - 11, iconHeight - 11)
     end
     
     if ImGui.IsItemHovered() then
-        ImGui.SetWindowFontScale(ZoomLvl)
+        ImGui.SetWindowFontScale(Scale)
         ImGui.BeginTooltip()
         ImGui.Text(txt)
         ImGui.EndTooltip()
@@ -205,8 +203,10 @@ local function DrawStatusIcon(iconID, type, txt)
 end
 
 local function DrawGroupMember(id)
-    local member = mq.TLO.Group.Member(id)
+    local member = TLO.Group.Member(id)
     local memberName = member.Name()
+    local role = nil
+    local mTank, mAssist, gLeader, mPuller = false, false, false, false
     if member == 'NULL' then return end
 
     function GetInfoToolTip()
@@ -224,7 +224,7 @@ local function DrawGroupMember(id)
 
     ImGui.BeginGroup()
     
-    if ImGui.BeginTable("##playerInfo", 4, tPlayerFlags) then
+    if ImGui.BeginTable("##playerInfo" .. tostring(id), 4, tPlayerFlags) then
         
         ImGui.TableSetupColumn("##tName", ImGuiTableColumnFlags.NoResize, (ImGui.GetContentRegionAvail() * .5))
         ImGui.TableSetupColumn("##tVis", ImGuiTableColumnFlags.NoResize, 16)
@@ -232,14 +232,14 @@ local function DrawGroupMember(id)
         ImGui.TableSetupColumn("##tLvl", ImGuiTableColumnFlags.NoResize, 30)
         ImGui.TableNextRow()
         -- Name
-        ImGui.SetWindowFontScale(ZoomLvl)
+        ImGui.SetWindowFontScale(Scale)
         ImGui.TableSetColumnIndex(0)
         
         -- local memberName = member.Name()
         
-        ImGui.SetWindowFontScale(ZoomLvl * 0.8)
+        ImGui.SetWindowFontScale(Scale * 0.8)
         ImGui.Text( 'F'..tostring(id+1))
-        ImGui.SetWindowFontScale(ZoomLvl)
+        ImGui.SetWindowFontScale(Scale)
         ImGui.SameLine()
         
         ImGui.Text(memberName)
@@ -248,7 +248,7 @@ local function DrawGroupMember(id)
         
         ImGui.TableSetColumnIndex(1)
         
-        ImGui.SetWindowFontScale(ZoomLvl * 0.75)
+        ImGui.SetWindowFontScale(Scale * 0.75)
         if member.LineOfSight() then
             ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, .5)
             ImGui.Text(Icons.MD_VISIBILITY)
@@ -259,7 +259,7 @@ local function DrawGroupMember(id)
         end
         ImGui.PopStyleColor()
         
-        ImGui.SetWindowFontScale(ZoomLvl * 0.91)
+        ImGui.SetWindowFontScale(Scale * 0.91)
         
         -- Icons
         
@@ -271,16 +271,23 @@ local function DrawGroupMember(id)
         if TLO.Group.MainTank.ID() == member.ID() then
             ImGui.SameLine()
             DrawStatusIcon('A_Tank','pwcs','Main Tank')
+            mTank = true
         end
         
         if TLO.Group.MainAssist.ID() == member.ID() then
             ImGui.SameLine()
             DrawStatusIcon('A_Assist','pwcs','Main Assist')
+            mAssist = true
         end
         
         if TLO.Group.Puller.ID() == member.ID() then
             ImGui.SameLine()
             DrawStatusIcon('A_Puller','pwcs','Puller')
+            mPuller = true
+        end
+
+        if mq.TLO.Me.GroupLeader() then
+            gLeader = true
         end
         
         ImGui.SameLine()
@@ -290,7 +297,7 @@ local function DrawGroupMember(id)
         
         ImGui.SameLine()
         
-        ImGui.SetWindowFontScale(ZoomLvl * 0.75)
+        ImGui.SetWindowFontScale(Scale * 0.75)
         local dist = member.Distance() or 9999
         local dis = '9999'
         
@@ -308,11 +315,11 @@ local function DrawGroupMember(id)
         -- Lvl
         ImGui.TableSetColumnIndex(3)
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, 2, 0)
-        ImGui.SetWindowFontScale(ZoomLvl * 1)
+        ImGui.SetWindowFontScale(Scale * 1)
         ImGui.Text(tostring(member.Level() or 0))
         if ImGui.IsItemHovered() then
             ImGui.BeginTooltip()
-            ImGui.SetWindowFontScale(ZoomLvl)
+            ImGui.SetWindowFontScale(Scale)
             if not member.OtherZone() then
                 ImGui.Text(GetInfoToolTip())
                 else
@@ -320,15 +327,32 @@ local function DrawGroupMember(id)
             end
             ImGui.EndTooltip()
         end
-        ImGui.SetWindowFontScale(ZoomLvl * 0.75)
+        ImGui.SetWindowFontScale(Scale * 0.75)
         ImGui.PopStyleVar()
         ImGui.EndTable()
+    end
+    if ImGui.BeginPopupContextItem("##groupContext" .. tostring(id)) then -- Context menu for the group Roles
+        if ImGui.BeginMenu('Roles') then
+            if ImGui.Selectable('Main Assist') then
+                mq.cmdf("/grouproles set %s 2", memberName)
+            end
+            if ImGui.Selectable('Main Tank') then
+                mq.cmdf("/grouproles set %s 1", memberName)
+            end
+            if ImGui.Selectable('Puller') then
+                mq.cmdf("/grouproles set %s 3", memberName)
+            end
+            if TLO.Me.GroupLeader() and ImGui.Selectable('Group Leader') then
+                mq.cmdf("/makeleader %s", memberName)
+            end
+        ImGui.EndMenu()
+        end
+    ImGui.EndPopup()
     end
     ImGui.Separator()
     
     -- Health Bar
-    
-    ImGui.SetWindowFontScale(ZoomLvl * 0.75)
+    ImGui.SetWindowFontScale(Scale * 0.75)
     if not member.OtherZone() then
         
         if member.PctHPs() <= 0  or member.PctHPs() == nil then
@@ -339,16 +363,16 @@ local function DrawGroupMember(id)
             ImGui.PushStyleColor(ImGuiCol.PlotHistogram,(COLOR.color('red')))
         end
         
-        ImGui.ProgressBar(((tonumber(member.PctHPs() or 0)) / 100), ImGui.GetContentRegionAvail(), 7 * ZoomLvl, '##pctHps'..id)
+        ImGui.ProgressBar(((tonumber(member.PctHPs() or 0)) / 100), ImGui.GetContentRegionAvail(), 7 * Scale, '##pctHps'..id)
         ImGui.PopStyleColor()
         
         if ImGui.IsItemHovered() then
-            ImGui.SetWindowFontScale(ZoomLvl)
+            ImGui.SetWindowFontScale(Scale)
             ImGui.BeginTooltip()
             ImGui.Text(member.DisplayName())
             ImGui.Text(member.PctHPs()..'% Health')
             ImGui.EndTooltip()
-            ImGui.SetWindowFontScale(ZoomLvl * 0.75)
+            ImGui.SetWindowFontScale(Scale * 0.75)
         end
         
         --My Mana Bar
@@ -356,16 +380,16 @@ local function DrawGroupMember(id)
             for i, v in pairs(manaClass) do
                 if string.find(member.Class.ShortName(), v) then
                     ImGui.PushStyleColor(ImGuiCol.PlotHistogram,(COLOR.color('light blue2')))
-                    ImGui.ProgressBar(((tonumber(member.PctMana() or 0)) / 100), ImGui.GetContentRegionAvail(), 7 * ZoomLvl, '##pctMana'..id)
+                    ImGui.ProgressBar(((tonumber(member.PctMana() or 0)) / 100), ImGui.GetContentRegionAvail(), 7 * Scale, '##pctMana'..id)
                     ImGui.PopStyleColor()
                     
                     if ImGui.IsItemHovered() then
-                        ImGui.SetWindowFontScale(ZoomLvl)
+                        ImGui.SetWindowFontScale(Scale)
                         ImGui.BeginTooltip()
                         ImGui.Text(member.DisplayName())
                         ImGui.Text(member.PctMana()..'% Mana')
                         ImGui.EndTooltip()
-                        ImGui.SetWindowFontScale(ZoomLvl * 0.75)
+                        ImGui.SetWindowFontScale(Scale * 0.75)
                     end
                 end
             end
@@ -373,16 +397,16 @@ local function DrawGroupMember(id)
         if showEnd then
             --My Endurance bar
             ImGui.PushStyleColor(ImGuiCol.PlotHistogram,(COLOR.color('yellow2')))
-            ImGui.ProgressBar(((tonumber(member.PctEndurance() or 0)) / 100), ImGui.GetContentRegionAvail(), 7 * ZoomLvl, '##pctEndurance'..id)
+            ImGui.ProgressBar(((tonumber(member.PctEndurance() or 0)) / 100), ImGui.GetContentRegionAvail(), 7 * Scale, '##pctEndurance'..id)
             ImGui.PopStyleColor()
             
             if ImGui.IsItemHovered() then
-                ImGui.SetWindowFontScale(ZoomLvl)
+                ImGui.SetWindowFontScale(Scale)
                 ImGui.BeginTooltip()
                 ImGui.Text(member.DisplayName())
                 ImGui.Text(member.PctEndurance()..'% Endurance')
                 ImGui.EndTooltip()
-                ImGui.SetWindowFontScale(ZoomLvl * 0.75)
+                ImGui.SetWindowFontScale(Scale * 0.75)
             end
         end
 
@@ -392,18 +416,18 @@ local function DrawGroupMember(id)
             ImGui.BeginGroup()            
             if member.Pet() ~= 'NO PET' then
                 ImGui.PushStyleColor(ImGuiCol.PlotHistogram,(COLOR.color('green2')))
-                ImGui.ProgressBar(((tonumber(member.Pet.PctHPs() or 0)) / 100), ImGui.GetContentRegionAvail(), 4 * ZoomLvl, '##PetHp'..id)
+                ImGui.ProgressBar(((tonumber(member.Pet.PctHPs() or 0)) / 100), ImGui.GetContentRegionAvail(), 4 * Scale, '##PetHp'..id)
                 ImGui.PopStyleColor()
                 if ImGui.IsItemHovered() then
                     ImGui.BeginTooltip()
-                    ImGui.SetWindowFontScale(ZoomLvl)
+                    ImGui.SetWindowFontScale(Scale)
                     ImGui.Text(member.Pet.DisplayName())
                     ImGui.Text(member.Pet.PctHPs()..'% health')
                     ImGui.EndTooltip()
-                    ImGui.SetWindowFontScale(ZoomLvl * 0.75)
+                    ImGui.SetWindowFontScale(Scale * 0.75)
                     if ImGui.IsMouseClicked(0) then
                         mq.cmdf("/target id %s", member.Pet.ID())
-                        if mq.TLO.Cursor() then
+                        if TLO.Cursor() then
                             mq.cmdf('/multiline ; /tar id %s; /face; /if (${Cursor.ID}) /click left target',member.Pet.ID())
                         end
                     end
@@ -416,20 +440,23 @@ local function DrawGroupMember(id)
         ImGui.Dummy(ImGui.GetContentRegionAvail(), 20)
         
     end
+
     ImGui.EndGroup()
+
     if ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Left) then
         mq.cmdf("/target id %s", member.ID())
-        if mq.TLO.Cursor() then
+        if TLO.Cursor() then
             mq.cmdf('/multiline ; /tar id %s; /face; /if (${Cursor.ID}) /click left target',member.ID())
         end
     end
-    if ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Right) then
+    if ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Right) and ImGui.IsKeyDown(ImGuiMod.Ctrl) then
         if useEQBC then
             mq.cmdf("/bct %s //foreground", memberName)
             else
             mq.cmdf("/dex %s /foreground", memberName)
         end
     end
+
 end
 
 local function GUI_Group(open)
@@ -446,7 +473,7 @@ local function GUI_Group(open)
     ImGui.SetNextWindowSize(216, 239, ImGuiCond.FirstUseEver)
     local show = false
     ColorCount, StyleCount = DrawTheme(themeName)
-    open, show = ImGui.Begin("My Group##MyGroup"..mq.TLO.Me.DisplayName(), open, flags)
+    open, show = ImGui.Begin("My Group##MyGroup"..TLO.Me.DisplayName(), open, flags)
     
     if not show then
         if StyleCount > 0 then ImGui.PopStyleVar(StyleCount) end
@@ -458,7 +485,7 @@ local function GUI_Group(open)
     ImGui.SetWindowFontScale(1)
 
     if ImGui.BeginMenuBar() then
-        if ZoomLvl > 1.25 then ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, 4,7) end
+        if Scale > 1.25 then ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, 4,7) end
         local lockedIcon = locked and Icons.FA_LOCK .. '##lockTabButton_MyChat' or
         Icons.FA_UNLOCK .. '##lockTablButton_MyChat'
         if ImGui.Button(lockedIcon) then
@@ -469,7 +496,7 @@ local function GUI_Group(open)
             writeSettings(configFile, settings)
         end
         if ImGui.IsItemHovered() then
-            ImGui.SetWindowFontScale(ZoomLvl)
+            ImGui.SetWindowFontScale(Scale)
             ImGui.BeginTooltip()
             ImGui.Text("Lock Window")
             ImGui.EndTooltip()
@@ -484,23 +511,23 @@ local function GUI_Group(open)
     
     -- Player Information
     
-    if mq.TLO.Me.GroupSize() > 0 then
+    if TLO.Me.GroupSize() > 0 then
         
-        for i = 1, mq.TLO.Me.GroupSize() -1 do
-            local member = mq.TLO.Group.Member(i)
+        for i = 1, TLO.Me.GroupSize() -1 do
+            local member = TLO.Group.Member(i)
             if member ~= 'NULL' then
                 ImGui.BeginGroup()
                 DrawGroupMember(i)
                 ImGui.EndGroup()
             end
-            ImGui.SetWindowFontScale(ZoomLvl)
+            ImGui.SetWindowFontScale(Scale)
         end
         
     end
     
     ImGui.SeparatorText('Commands')
     
-    local invited = mq.TLO.Me.Invited() or false
+    local invited = TLO.Me.Invited() or false
     local lbl = 'Invite'
     
     if invited then
@@ -508,14 +535,14 @@ local function GUI_Group(open)
     end
     
     if ImGui.Button(lbl) then
-        mq.cmdf("/invite %s", mq.TLO.Target.Name())
+        mq.cmdf("/invite %s", TLO.Target.Name())
     end
     
-    if mq.TLO.Me.GroupSize() > 0 then
+    if TLO.Me.GroupSize() > 0 then
         ImGui.SameLine()
     end
     
-    if mq.TLO.Me.GroupSize() > 0 then
+    if TLO.Me.GroupSize() > 0 then
         
         if ImGui.Button('Disband') then
             mq.cmdf("/disband")
@@ -525,7 +552,7 @@ local function GUI_Group(open)
     
     ImGui.Separator()
     
-    local meID = mq.TLO.Me.ID()
+    local meID = TLO.Me.ID()
     
     if ImGui.Button('Come\nTo Me') then
         if useEQBC then
@@ -560,18 +587,18 @@ local function GUI_Group(open)
     followMe = tmpFollow
     
     ImGui.SameLine()
-    local tmpMimic = mimic
-    if mimic then ImGui.PushStyleColor(ImGuiCol.Button, COLOR.color('pink')) end
+    local tmpMimic = mimicMe
+    if mimicMe then ImGui.PushStyleColor(ImGuiCol.Button, COLOR.color('pink')) end
     if ImGui.Button('Mimic\n   Me') then
-        if mimic then
+        if mimicMe then
             mq.cmd("/groupinfo mimicme off")
             else
             mq.cmd("/groupinfo mimicme on")
         end
         tmpMimic = not tmpMimic
     end
-    if mimic then ImGui.PopStyleColor(1) end
-    mimic = tmpMimic
+    if mimicMe then ImGui.PopStyleColor(1) end
+    mimicMe = tmpMimic
 
 
     if StyleCount > 0 then ImGui.PopStyleVar(StyleCount) else ImGui.PopStyleVar(1) end
@@ -604,7 +631,7 @@ local function MyGroupConf_GUI(open)
     ImGui.Text("Cur Theme: %s", themeName)
     -- Combo Box Load Theme
     if ImGui.BeginCombo("Load Theme##MyGroup", themeName) then
-        ImGui.SetWindowFontScale(ZoomLvl)
+        ImGui.SetWindowFontScale(Scale)
         for k, data in pairs(theme.Theme) do
             local isSelected = data.Name == themeName
             if ImGui.Selectable(data.Name, isSelected) then
@@ -624,13 +651,13 @@ local function MyGroupConf_GUI(open)
 
     ImGui.SeparatorText("Scaling##"..script)
     -- Slider for adjusting zoom level
-    local tmpZoom = ZoomLvl
-    if ZoomLvl then
+    local tmpZoom = Scale
+    if Scale then
         tmpZoom = ImGui.SliderFloat("Zoom Level##MyGroup", tmpZoom, 0.5, 2.0)
     end
-    if ZoomLvl ~= tmpZoom then
-        ZoomLvl = tmpZoom
-        settings[script].Scale = ZoomLvl
+    if Scale ~= tmpZoom then
+        Scale = tmpZoom
+        settings[script].Scale = Scale
     end
     ImGui.SeparatorText("Toggles##"..script)
     local tmpComms = useEQBC
@@ -668,7 +695,7 @@ local function MyGroupConf_GUI(open)
         settings[script].ShowEnd = showEnd
         settings[script].ShowPet = showPet
         settings[script].UseEQBC = useEQBC
-        settings[script].Scale = ZoomLvl
+        settings[script].Scale = Scale
         settings[script].LoadTheme = themeName
         settings[script].locked = locked
         writeSettings(configFile,settings)
@@ -694,9 +721,9 @@ local function MainLoop()
         
         mq.delay(1)
         
-        if mq.TLO.Me.Zoning() then
+        if TLO.Me.Zoning() then
             ShowGUI = false
-            mimic = false
+            mimicMe = false
             followMe = false
             else
             ShowGUI = true
@@ -707,14 +734,14 @@ local function MainLoop()
             GUI_Group(openGUI)
         end
         
-        if mimic and lastTar ~= mq.TLO.Target.ID() then
-            lastTar = mq.TLO.Target.ID()
-            mq.cmdf("/dgge /target id %s", mq.TLO.Target.ID())
+        if mimicMe and lastTar ~= TLO.Target.ID() then
+            lastTar = TLO.Target.ID()
+            mq.cmdf("/dgge /target id %s", TLO.Target.ID())
         end
         
     end
 end
 
 init()
-printf("\ag %s \aw[\ayMy Group\aw] ::\a-t Version \aw::\ay %s \at Loaded",TLO.Time(), ver)
+printf("\ag %s \aw[\ayMy Group\aw] ::\at Loaded",TLO.Time())
 MainLoop()
