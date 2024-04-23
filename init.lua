@@ -210,7 +210,7 @@ local function DrawGroupMember(id)
     if member == 'NULL' then return end
 
     function GetInfoToolTip()
-        if not member.Present() then
+        if member.Present() then
             local pInfoToolTip = (member.Name() ..
                 '\t\tlvl: ' .. tostring(member.Level()) ..
                 '\nClass: ' .. member.Class.Name() ..
@@ -320,7 +320,7 @@ local function DrawGroupMember(id)
         if ImGui.IsItemHovered() then
             ImGui.BeginTooltip()
             ImGui.SetWindowFontScale(Scale)
-            if not member.Present() then
+            if member.Present() then
                 ImGui.Text(GetInfoToolTip())
                 else
                 ImGui.Text('Not in Zone!')
@@ -360,7 +360,7 @@ local function DrawGroupMember(id)
     
     -- Health Bar
     ImGui.SetWindowFontScale(Scale * 0.75)
-    if not member.Present() then
+    if member.Present() then
         
         if member.PctHPs() <= 0  or member.PctHPs() == nil then
             ImGui.PushStyleColor(ImGuiCol.PlotHistogram,(COLOR.color('purple')))
