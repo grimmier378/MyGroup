@@ -469,7 +469,7 @@ local function DrawGroupMember(id)
 
 end
 
-local function GUI_Group(open)
+local function GUI_Group()
     ColorCount = 0
     StyleCount = 0
     if not ShowGUI then return end
@@ -483,14 +483,14 @@ local function GUI_Group(open)
     ImGui.SetNextWindowSize(216, 239, ImGuiCond.FirstUseEver)
     local show = false
     ColorCount, StyleCount = DrawTheme(themeName)
-    open, show = ImGui.Begin("My Group##MyGroup"..TLO.Me.DisplayName(), open, flags)
+    openGUI, show = ImGui.Begin("My Group##MyGroup"..TLO.Me.DisplayName(), openGUI, flags)
     
     if not show then
         if StyleCount > 0 then ImGui.PopStyleVar(StyleCount) end
         if ColorCount > 0 then ImGui.PopStyleColor(ColorCount) end
         ImGui.SetWindowFontScale(1)
         ImGui.End()
-        return open
+        return openGUI
     end
     ImGui.SetWindowFontScale(1)
 
@@ -618,7 +618,7 @@ local function GUI_Group(open)
     ImGui.SetWindowFontScale(1)
     ImGui.End()
 
-    return open
+    return openGUI
 end
 
 local function MyGroupConf_GUI(open)
@@ -726,7 +726,7 @@ end
 
 local function MainLoop()
     
-    while true do
+    while openGUI do
         if TLO.Window('CharacterListWnd').Open() then return false end
         
         mq.delay(1)
@@ -739,10 +739,10 @@ local function MainLoop()
             ShowGUI = true
         end
         
-        if not openGUI then
-            openGUI = ShowGUI
-            GUI_Group(openGUI)
-        end
+        -- if not openGUI then
+        --     openGUI = ShowGUI
+        --     GUI_Group()
+        -- end
         
         if mimicMe and lastTar ~= TLO.Target.ID() then
             lastTar = TLO.Target.ID()
