@@ -29,6 +29,8 @@ local locked, showMana, showEnd, showPet = false, true, true, true
 local script = 'MyGroup'
 local defaults, settings, theme = {}, {}, {}
 local useEQBC = false
+local myName = TLO.Me.DisplayName()
+local meID = TLO.Me.ID()
 
 -- Flags
 local tPlayerFlags = bit32.bor(ImGuiTableFlags.NoBorders, ImGuiTableFlags.NoBordersInBody, ImGuiTableFlags.NoPadInnerX,
@@ -339,6 +341,13 @@ local function DrawGroupMember(id)
                 mq.cmdf("/dex %s /foreground", memberName)
             end
         end
+        if ImGui.Selectable('Come to Me') then
+            if useEQBC then
+                mq.cmdf("/bct %s //nav spawn %s", memberName,myName)
+                else
+                mq.cmdf("/dex %s /nav spawn %s", memberName,myName)
+            end
+        end
         if ImGui.BeginMenu('Roles') then
             if ImGui.Selectable('Main Assist') then
                 mq.cmdf("/grouproles set %s 2", memberName)
@@ -561,9 +570,7 @@ local function GUI_Group()
     end
     
     ImGui.Separator()
-    
-    local meID = TLO.Me.ID()
-    
+        
     if ImGui.Button('Come\nTo Me') then
         if useEQBC then
             mq.cmdf("/bcaa //nav spawn id %s", meID)
