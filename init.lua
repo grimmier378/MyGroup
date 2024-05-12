@@ -584,11 +584,11 @@ local function GUI_Group()
                 else
                 mq.cmdf("/multiline ; /dgge /nav stop; /dgge /afollow spawn %s", meID)
             end
-            else
+        else
             if useEQBC then
-                mq.cmd("/bcaa //nav stop")
+                mq.cmd("/bcaa //afollow off")
                 else
-                mq.cmd("/dgge /nav stop")
+                mq.cmd("/dgge /afollow off")
             end
         end
         tmpFollow = not tmpFollow
@@ -738,11 +738,6 @@ local function MainLoop()
             else
             ShowGUI = true
         end
-        
-        -- if not openGUI then
-        --     openGUI = ShowGUI
-        --     GUI_Group()
-        -- end
         
         if mimicMe and lastTar ~= TLO.Target.ID() then
             lastTar = TLO.Target.ID()
