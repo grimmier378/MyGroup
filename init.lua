@@ -329,7 +329,11 @@ local function DrawGroupMember(id)
         ImGui.PopStyleVar()
         ImGui.EndTable()
     end
+    if Scale < 1 then
+        ImGui.SetWindowFontScale(1)
+    end
     if ImGui.BeginPopupContextItem("##groupContext" .. tostring(id)) then -- Context menu for the group Roles
+        
         if ImGui.Selectable('Switch To') then
             if useEQBC then
                 mq.cmdf("/bct %s //foreground", memberName)
