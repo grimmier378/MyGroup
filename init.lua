@@ -58,6 +58,7 @@ defaults = {
         UseEQBC = false,
         ShowMana = true,
         ShowEnd = true,
+        ShowDummy = true,
         ShowPet = true,
     },
 }
@@ -119,6 +120,11 @@ local function loadSettings()
 
     if settings[script].LoadTheme == nil then
         settings[script].LoadTheme = themeName
+        newSetting = true
+    end
+
+    if settings[script].ShowDummy == nil then
+        settings[script].ShowDummy = true
         newSetting = true
     end
 
@@ -541,6 +547,17 @@ local function GUI_Group()
                     ImGui.SetWindowFontScale(Scale)
                 end
             end
+            if settings[script].ShowDummy then
+            if TLO.Me.GroupSize() < 6 then
+                local dummyCount = 6 - TLO.Me.GroupSize()
+                for i = 1, dummyCount do
+                    ImGui.BeginChild("Dummy##"..i,-1, 62, bit32.bor(ImGuiChildFlags.Border),ImGuiWindowFlags.NoScrollbar)
+
+                    ImGui.Dummy(ImGui.GetContentRegionAvail(), 75)
+                    ImGui.EndChild()
+                end
+            end
+        end
 
             ImGui.SeparatorText('Commands')
 
@@ -689,10 +706,11 @@ local function GUI_Group()
             if tmpPet ~= showPet then
                 showPet = tmpPet
             end
+            settings[script].ShowDummy = ImGui.Checkbox('Show Dummy##'..script, settings[script].ShowDummy)
+
             ImGui.SeparatorText("Save and Close##"..script)
             if ImGui.Button('Save and Close##'..script) then
                 openConfigGUI = false
-                settings = dofile(configFile)
                 settings[script].ShowMana = showMana
                 settings[script].ShowEnd = showEnd
                 settings[script].ShowPet = showPet
