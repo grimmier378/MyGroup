@@ -510,6 +510,7 @@ local function GUI_Group()
         local openGUI, showMain = ImGui.Begin("My Group##MyGroup"..TLO.Me.DisplayName(), true, flags)
         if not openGUI then ShowGUI = false end
         if showMain then
+            
             ImGui.SetWindowFontScale(1)
             if ImGui.BeginMenuBar() then
                 local lockedIcon = locked and Icons.FA_LOCK .. '##lockTabButton_MyChat' or
@@ -599,9 +600,9 @@ local function GUI_Group()
             if ImGui.Button('Follow') then
                 if not followMe then
                     if useEQBC then
-                        mq.cmdf("/multiline ; /dcaa //nav stop; /dcaa //afollow spawn %s", myName)
+                        mq.cmdf("/multiline ; /dcaa //nav stop; /dcaa //afollow spawn %d", meID)
                         else
-                        mq.cmdf("/multiline ; /dgge /nav stop; /dgge /afollow spawn %s", myName)
+                        mq.cmdf("/multiline ; /dgge /nav stop; /dgge /afollow spawn %d", meID)
                     end
                 else
                     if useEQBC then
@@ -735,6 +736,7 @@ end
 
 local function MainLoop()
     while ShowGUI do
+        meID = TLO.Me.ID()
         if TLO.Window('CharacterListWnd').Open() then return false end
         if not mq.TLO.MacroQuest.GameState() == "INGAME"then mq.exit() end
         mq.delay(33)
