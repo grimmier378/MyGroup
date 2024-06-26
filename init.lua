@@ -60,6 +60,8 @@ defaults = {
         ShowEnd = true,
         ShowDummy = true,
         ShowPet = true,
+        DynamicHP = false,
+        DynamicMP = false,
     },
 }
 
@@ -135,6 +137,16 @@ local function loadSettings()
 
     if settings[script].ShowMana == nil then
         settings[script].ShowMana = showMana
+        newSetting = true
+    end
+
+    if settings[script].DynamicHP == nil then
+        settings[script].DynamicHP = false
+        newSetting = true
+    end
+
+    if settings[script].DynamicMP == nil then
+        settings[script].DynamicMP = false
         newSetting = true
     end
 
@@ -219,6 +231,7 @@ local function DrawGroupMember(id)
     local memberName = member.Name()
     local role = nil
     local mTank, mAssist, gLeader, mPuller = false, false, false, false
+    local r,g,b,a = 1,1,1,1
     if member == 'NULL' then return end
 
     function GetInfoToolTip()
@@ -381,14 +394,21 @@ local function DrawGroupMember(id)
     ImGui.SetWindowFontScale(Scale * 0.75)
     if member.Present() then
 
-        if member.PctHPs() <= 0  or member.PctHPs() == nil then
-            ImGui.PushStyleColor(ImGuiCol.PlotHistogram,(COLOR.color('purple')))
+        if settings[script].DynamicHP then
+            r = 1
+            b = b * (100 - member.PctHPs()) / 150
+            g = 0.1
+            a = 0.9
+            ImGui.PushStyleColor(ImGuiCol.PlotHistogram, ImVec4(r, g, b, a))
+        else
+            if member.PctHPs() <= 0  or member.PctHPs() == nil then
+                ImGui.PushStyleColor(ImGuiCol.PlotHistogram,(COLOR.color('purple')))
             elseif member.PctHPs() < 15 then
-            ImGui.PushStyleColor(ImGuiCol.PlotHistogram,(COLOR.color('pink')))
+                ImGui.PushStyleColor(ImGuiCol.PlotHistogram,(COLOR.color('pink')))
             else
-            ImGui.PushStyleColor(ImGuiCol.PlotHistogram,(COLOR.color('red')))
+                ImGui.PushStyleColor(ImGuiCol.PlotHistogram,(COLOR.color('red')))
+            end
         end
-
         ImGui.ProgressBar(((tonumber(member.PctHPs() or 0)) / 100), ImGui.GetContentRegionAvail(), 7 * Scale, '##pctHps'..id)
         ImGui.PopStyleColor()
 
@@ -405,7 +425,15 @@ local function DrawGroupMember(id)
         if showMana then
             for i, v in pairs(manaClass) do
                 if string.find(member.Class.ShortName(), v) then
+                    if settings[script].DynamicMP then
+                        b = 0.9
+                        r = 1 * (100 - member.PctMana()) / 200
+                        g = 0.9 * member.PctMana() / 100  > 0.1 and 0.9 * member.PctMana() / 100 or 0.1
+                        a = 0.5
+                        ImGui.PushStyleColor(ImGuiCol.PlotHistogram, ImVec4(r, g, b, a))
+                    else
                     ImGui.PushStyleColor(ImGuiCol.PlotHistogram,(COLOR.color('light blue2')))
+                    end
                     ImGui.ProgressBar(((tonumber(member.PctMana() or 0)) / 100), ImGui.GetContentRegionAvail(), 7 * Scale, '##pctMana'..id)
                     ImGui.PopStyleColor()
                     if ImGui.IsItemHovered() then
@@ -708,7 +736,8 @@ local function GUI_Group()
                 showPet = tmpPet
             end
             settings[script].ShowDummy = ImGui.Checkbox('Show Dummy##'..script, settings[script].ShowDummy)
-
+            settings[script].DynamicHP = ImGui.Checkbox('Dynamic HP##'..script, settings[script].DynamicHP)
+            settings[script].DynamicMP = ImGui.Checkbox('Dynamic MP##'..script, settings[script].DynamicMP)
             ImGui.SeparatorText("Save and Close##"..script)
             if ImGui.Button('Save and Close##'..script) then
                 openConfigGUI = false
