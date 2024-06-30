@@ -784,7 +784,7 @@ local function DrawSelf()
         ImGui.Separator()
 
     ImGui.EndGroup()
-
+    ImGui.SetWindowFontScale(1)
     if ImGui.IsItemHovered() then
         local iconID = TLO.Cursor.Icon() or 0
         if iconID > 0 then
@@ -859,6 +859,7 @@ local function GUI_Group()
             if settings[script].ShowDummy then
             if TLO.Me.GroupSize() < 6 then
                 local dummyCount = 6 - TLO.Me.GroupSize()
+                if TLO.Me.GroupSize() == 0 then dummyCount = 5 end
                 for i = 1, dummyCount do
                     ImGui.BeginChild("Dummy##"..i,-1, 62, bit32.bor(ImGuiChildFlags.Border),ImGuiWindowFlags.NoScrollbar)
 
