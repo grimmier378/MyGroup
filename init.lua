@@ -24,7 +24,7 @@ local configFile = ''
 local ColorCount, ColorCountConf, StyleCount, StyleCountConf = 0, 0, 0, 0
 local lastTar = TLO.Target.ID() or 0
 local themeName = 'Default'
-local locked, showMana, showEnd, showPet = false, true, true, true
+local locked, showMana, showEnd, showPet, mouseHover = false, true, true, true, false
 local script = 'MyGroup'
 local defaults, settings, theme = {}, {}, {}
 local useEQBC = false
@@ -59,6 +59,8 @@ defaults = {
         LoadTheme = 'Default',
         locked = false,
         UseEQBC = false,
+        WinTransparency = 1.0,
+        MouseOver = false,
         ShowSelf = false,
         ShowMana = true,
         ShowEnd = true,
@@ -179,6 +181,16 @@ local function loadSettings()
         newSetting = true
     end
 
+    if settings[script].WinTransparency == nil then
+        settings[script].WinTransparency = 1.0
+        newSetting = true
+    end
+
+    if settings[script].MouseOver == nil then
+        settings[script].MouseOver = false
+        newSetting = true
+    end
+
     showSelf = settings[script].ShowSelf
     hideTitle = settings[script].HideTitleBar
     showPet = settings[script].ShowPet
@@ -202,8 +214,21 @@ local function DrawTheme(tName)
     for tID, tData in pairs(theme.Theme) do
         if tData.Name == tName then
             for pID, cData in pairs(theme.Theme[tID].Color) do
-                ImGui.PushStyleColor(pID, ImVec4(cData.Color[1], cData.Color[2], cData.Color[3], cData.Color[4]))
-                ColorCounter = ColorCounter + 1
+                if cData.PropertyName == 'WindowBg' then
+                    if not settings[script].MouseOver then
+                        ImGui.PushStyleColor(ImGuiCol.WindowBg, ImVec4(cData.Color[1], cData.Color[2], cData.Color[3], settings[script].WinTransparency))
+                        ColorCounter = ColorCounter + 1
+                    elseif settings[script].MouseOver and mouseHover then
+                        ImGui.PushStyleColor(ImGuiCol.WindowBg, ImVec4(cData.Color[1], cData.Color[2], cData.Color[3], 1.0))
+                        ColorCounter = ColorCounter + 1
+                    elseif settings[script].MouseOver and not mouseHover then
+                        ImGui.PushStyleColor(ImGuiCol.WindowBg, ImVec4(cData.Color[1], cData.Color[2], cData.Color[3], settings[script].WinTransparency))
+                        ColorCounter = ColorCounter + 1
+                    end
+                else
+                    ImGui.PushStyleColor(pID, ImVec4(cData.Color[1], cData.Color[2], cData.Color[3], cData.Color[4]))
+                    ColorCounter = ColorCounter + 1
+                end
             end
             if tData['Style'] ~= nil then
                 if next(tData['Style']) ~= nil then
@@ -588,15 +613,20 @@ local function DrawSelf()
         -- Visiblity
 
         ImGui.TableSetColumnIndex(1)
-        ImGui.SetWindowFontScale(Scale * 0.75)
-        if mySelf.LineOfSight() then
-            ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, .5)
-            ImGui.Text(Icons.MD_VISIBILITY)
-            else
-            ImGui.PushStyleColor(ImGuiCol.Text, 0.9, 0, 0, .5)
-            ImGui.Text(Icons.MD_VISIBILITY_OFF)
+        -- ImGui.SetWindowFontScale(Scale * 0.75)
+        -- if mySelf.LineOfSight() then
+        --     ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, .5)
+        --     ImGui.Text(Icons.MD_VISIBILITY)
+        --     else
+        --     ImGui.PushStyleColor(ImGuiCol.Text, 0.9, 0, 0, .5)
+        --     ImGui.Text(Icons.MD_VISIBILITY_OFF)
+        -- end
+        -- ImGui.PopStyleColor()
+        if TLO.Group.MainTank.ID() == mySelf.ID() then
+            ImGui.SameLine()
+            DrawStatusIcon('A_Tank','pwcs','Main Tank')
+            mTank = true
         end
-        ImGui.PopStyleColor()
         ImGui.SetWindowFontScale(Scale * 0.91)
 
         -- Icons
@@ -605,11 +635,7 @@ local function DrawSelf()
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, 0, 0)
         ImGui.Text('')
 
-        if TLO.Group.MainTank.ID() == mySelf.ID() then
-            ImGui.SameLine()
-            DrawStatusIcon('A_Tank','pwcs','Main Tank')
-            mTank = true
-        end
+
 
         if TLO.Group.MainAssist.ID() == mySelf.ID() then
             ImGui.SameLine()
@@ -816,7 +842,7 @@ local function GUI_Group()
         local openGUI, showMain = ImGui.Begin("My Group##MyGroup"..TLO.Me.DisplayName(), true, flags)
         if not openGUI then ShowGUI = false end
         if showMain then
-            
+            mouseHover = ImGui.IsWindowHovered(ImGuiHoveredFlags.ChildWindows)
             ImGui.SetWindowFontScale(1)
             if ImGui.BeginMenuBar() then
                 local lockedIcon = locked and Icons.FA_LOCK .. '##lockTabButton_MyChat' or
@@ -977,7 +1003,8 @@ local function GUI_Group()
             if ImGui.Button('Reload Theme File') then
                 loadTheme()
             end
-
+            settings[script].MouseOver = ImGui.Checkbox('Mouse Over', settings[script].MouseOver)
+            settings[script].WinTransparency = ImGui.SliderFloat('Window Transparency##'..script, settings[script].WinTransparency, 0.1, 1.0)
             ImGui.SeparatorText("Scaling##"..script)
             -- Slider for adjusting zoom level
             local tmpZoom = Scale
