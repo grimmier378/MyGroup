@@ -309,11 +309,20 @@ local function DrawGroupMember(id)
 
         -- local memberName = member.Name()
 
-        ImGui.SetWindowFontScale(Scale * 0.8)
-        ImGui.Text( 'F'..tostring(id+1))
-        ImGui.SetWindowFontScale(Scale)
-        ImGui.SameLine()
-        ImGui.Text(memberName)
+        if TLO.Group.Leader.ID() == member.ID() then
+            ImGui.SetWindowFontScale(Scale * 0.8)
+            ImGui.TextColored(0,1,1,1,'F%d',id+1 )
+            ImGui.SetWindowFontScale(Scale)
+            ImGui.SameLine()
+            ImGui.TextColored(0,1,1,1,memberName)
+        else
+            ImGui.SetWindowFontScale(Scale * 0.8)
+            ImGui.Text( 'F%d',id+1)
+            ImGui.SetWindowFontScale(Scale)
+            ImGui.SameLine()
+            ImGui.Text(memberName)
+        end
+
 
         -- Visiblity
 
@@ -351,10 +360,6 @@ local function DrawGroupMember(id)
             ImGui.SameLine()
             DrawStatusIcon('A_Puller','pwcs','Puller')
             mPuller = true
-        end
-
-        if mq.TLO.Me.GroupLeader() then
-            gLeader = true
         end
 
         ImGui.SameLine()
@@ -428,8 +433,11 @@ local function DrawGroupMember(id)
             if ImGui.Selectable('Puller') then
                 mq.cmdf("/grouproles set %s 3", memberName)
             end
-            if TLO.Me.GroupLeader() and ImGui.Selectable('Group Leader') then
+            if TLO.Me.GroupLeader() and ImGui.Selectable('Make Leader') then
                 mq.cmdf("/makeleader %s", memberName)
+            end
+            if TLO.Group.Leader.ID() == member.ID() and ImGui.Selectable('Make Me Leader') then
+                mq.cmdf("/dex %s /makeleader %s",member.Name(), myName)
             end
         ImGui.EndMenu()
         end
