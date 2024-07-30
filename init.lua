@@ -66,6 +66,7 @@ defaults = {
         ShowSelf = false,
         ShowMana = true,
         ShowEnd = true,
+        ShowRoleIcons = true,
         ShowDummy = true,
         ShowPet = true,
         DynamicHP = false,
@@ -247,7 +248,21 @@ local function DrawGroupMember(id)
                 '\nEnd: ' .. tostring(member.CurrentEndurance()) .. ' of ' .. tostring(member.MaxEndurance()) ..
                 '\nSitting: ' .. tostring(member.Sitting())
             )
-            return pInfoToolTip
+            ImGui.Text(pInfoToolTip)
+            if TLO.Group.MainTank.ID() == member.ID() then
+                ImGui.SameLine()
+                DrawStatusIcon('A_Tank','pwcs','Main Tank')
+            end
+
+            if TLO.Group.MainAssist.ID() == member.ID() then
+                ImGui.SameLine()
+                DrawStatusIcon('A_Assist','pwcs','Main Assist')
+            end
+
+            if TLO.Group.Puller.ID() == member.ID() then
+                ImGui.SameLine()
+                DrawStatusIcon('A_Puller','pwcs','Puller')
+            end
         end
     end
 
@@ -287,24 +302,25 @@ local function DrawGroupMember(id)
         ImGui.TableSetColumnIndex(2)
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, 0, 0)
         ImGui.Text('')
+        if settings[script].ShowRoleIcons then
+            if TLO.Group.MainTank.ID() == member.ID() then
+                ImGui.SameLine()
+                DrawStatusIcon('A_Tank','pwcs','Main Tank')
+            end
 
-        if TLO.Group.MainTank.ID() == member.ID() then
+            if TLO.Group.MainAssist.ID() == member.ID() then
+                ImGui.SameLine()
+                DrawStatusIcon('A_Assist','pwcs','Main Assist')
+            end
+
+            if TLO.Group.Puller.ID() == member.ID() then
+                ImGui.SameLine()
+                DrawStatusIcon('A_Puller','pwcs','Puller')
+            end
+
             ImGui.SameLine()
-            DrawStatusIcon('A_Tank','pwcs','Main Tank')
+            ImGui.Text(' ')
         end
-
-        if TLO.Group.MainAssist.ID() == member.ID() then
-            ImGui.SameLine()
-            DrawStatusIcon('A_Assist','pwcs','Main Assist')
-        end
-
-        if TLO.Group.Puller.ID() == member.ID() then
-            ImGui.SameLine()
-            DrawStatusIcon('A_Puller','pwcs','Puller')
-        end
-
-        ImGui.SameLine()
-        ImGui.Text(' ')
         ImGui.SameLine()
 
         local dist = member.Distance() or 9999
@@ -326,7 +342,9 @@ local function DrawGroupMember(id)
         end
         if ImGui.IsItemHovered() then
             if member.Present() then
-                ImGui.SetTooltip(GetInfoToolTip())
+                ImGui.BeginTooltip()
+                GetInfoToolTip()
+                ImGui.EndTooltip()
             else
                 ImGui.SetTooltip('Not in Zone!')
             end
@@ -472,9 +490,23 @@ local function DrawSelf()
             '\nClass: ' .. mySelf.Class.Name() ..
             '\nHealth: ' .. tostring(mySelf.CurrentHPs()) .. ' of ' .. tostring(mySelf.MaxHPs()) ..
             '\nMana: ' .. tostring(mySelf.CurrentMana()) .. ' of ' .. tostring(mySelf.MaxMana()) ..
-            '\nEnd: ' .. tostring(mySelf.CurrentEndurance()) .. ' of ' .. tostring(mySelf.MaxEndurance())
+            '\nEnd: ' .. tostring(mySelf.CurrentEndurance()) .. ' of ' .. tostring(mySelf.MaxEndurance())..'\n'
         )
-        return pInfoToolTip
+        ImGui.Text(pInfoToolTip)
+        if TLO.Group.MainAssist.ID() == mySelf.ID() then
+            ImGui.SameLine()
+            DrawStatusIcon('A_Assist','pwcs','Main Assist')
+        end
+        
+        if TLO.Group.Puller.ID() == mySelf.ID() then
+            ImGui.SameLine()
+            DrawStatusIcon('A_Puller','pwcs','Puller')
+        end
+    
+        if TLO.Group.MainTank.ID() == mySelf.ID() then
+            ImGui.SameLine()
+            DrawStatusIcon('A_Tank','pwcs','Main Tank')
+        end
     end
 
     ImGui.BeginGroup()
@@ -494,31 +526,35 @@ local function DrawSelf()
         ImGui.SameLine()
         ImGui.Text(memberName)
 
-        -- Visiblity
-
-        ImGui.TableSetColumnIndex(1)
-        if TLO.Group.MainTank.ID() == mySelf.ID() then
-            ImGui.SameLine()
-            DrawStatusIcon('A_Tank','pwcs','Main Tank')
-        end
-
         -- Icons
+        
+        ImGui.TableSetColumnIndex(1)
+        if settings[script].ShowRoleIcons then
 
-        ImGui.TableSetColumnIndex(2)
-        ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, 0, 0)
-        ImGui.Text('')
+            if TLO.Group.MainTank.ID() == mySelf.ID() then
+                ImGui.SameLine()
+                DrawStatusIcon('A_Tank','pwcs','Main Tank')
+            end
 
-        if TLO.Group.MainAssist.ID() == mySelf.ID() then
+            ImGui.TableSetColumnIndex(2)
+            ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, 0, 0)
+            ImGui.Text('')
+
+            if TLO.Group.MainAssist.ID() == mySelf.ID() then
+                ImGui.SameLine()
+                DrawStatusIcon('A_Assist','pwcs','Main Assist')
+            end
+
+            if TLO.Group.Puller.ID() == mySelf.ID() then
+                ImGui.SameLine()
+                DrawStatusIcon('A_Puller','pwcs','Puller')
+            end
+
             ImGui.SameLine()
-            DrawStatusIcon('A_Assist','pwcs','Main Assist')
+        else
+            ImGui.TableSetColumnIndex(2)
+            ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, 0, 0)
         end
-
-        if TLO.Group.Puller.ID() == mySelf.ID() then
-            ImGui.SameLine()
-            DrawStatusIcon('A_Puller','pwcs','Puller')
-        end
-
-        ImGui.SameLine()
         ImGui.Text(' ')
         ImGui.SameLine()
 
@@ -534,9 +570,15 @@ local function DrawSelf()
         -- Lvl
         ImGui.TableSetColumnIndex(3)
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, 2, 0)
-        ImGui.Text("%s",(mySelf.Level() or 0))
+        if mySelf.Sitting() then
+            ImGui.TextColored(0.911, 0.351, 0.008, 1,"%d",mySelf.Level() or 0)
+        else
+            ImGui.Text("%s",mySelf.Level() or 0)
+        end
         if ImGui.IsItemHovered() then
-            ImGui.SetTooltip(GetInfoToolTip())
+            ImGui.BeginTooltip()
+            GetInfoToolTip()
+            ImGui.EndTooltip()
         end
         ImGui.PopStyleVar()
         ImGui.EndTable()
@@ -859,6 +901,8 @@ local function GUI_Group()
                 showPet = tmpPet
             end
             settings[script].ShowDummy = ImGui.Checkbox('Show Dummy##'..script, settings[script].ShowDummy)
+            ImGui.SameLine()
+            settings[script].ShowRoleIcons = ImGui.Checkbox('Show Role Icons##'..script, settings[script].ShowRoleIcons)
             settings[script].DynamicHP = ImGui.Checkbox('Dynamic HP##'..script, settings[script].DynamicHP)
             settings[script].DynamicMP = ImGui.Checkbox('Dynamic MP##'..script, settings[script].DynamicMP)
             hideTitle = ImGui.Checkbox('Hide Title Bar##'..script, hideTitle)
