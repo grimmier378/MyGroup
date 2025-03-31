@@ -1,7 +1,7 @@
 local mq = require('mq')
 local ImGui = require('ImGui')
 local CommonUtils = require('mq.Utils')
-
+CommonUtils.Colors = require('lib.colors')
 CommonUtils.Animation_Item = mq.FindTextureAnimation('A_DragItem')
 CommonUtils.Animation_Spell = mq.FindTextureAnimation('A_SpellIcons')
 
@@ -120,14 +120,11 @@ function CommonUtils.GetNextID(table)
 	return maxID + 1
 end
 
---- Takes in a table or sorted index,key pairs and returns a sorted table of keys based on the number of columns to sorty by.
----
----This will keep your table sorted by columns instead of rows.
 ---@param input_table table|nil  the table to sort (optional) You can send a set of sorted keys if you have already custom sorted it.
 ---@param sorted_keys table|nil  the sorted keys table (optional) if you have already sorted the keys
 ---@param num_columns integer  the number of column groups to sort the keys into
 ---@return table
-function CommonUtils.SortTableColums(input_table, sorted_keys, num_columns)
+function CommonUtils.SortTableColumns(input_table, sorted_keys, num_columns)
 	if input_table == nil and sorted_keys == nil then return {} end
 
 	-- If sorted_keys is provided, use it, otherwise extract the keys from the input_table
@@ -142,15 +139,33 @@ function CommonUtils.SortTableColums(input_table, sorted_keys, num_columns)
 	end
 
 	local total_items = #keys
-	local num_rows = math.ceil(total_items / num_columns)
-	local column_sorted = {}
+	local base_rows = math.floor(total_items / num_columns) -- Base number of rows per column
+	local extra_rows = total_items % num_columns         -- Number of columns that need an extra row
 
-	-- Reorganize the keys to fill vertically by columns
-	for row = 1, num_rows do
+	local column_sorted = {}
+	local column_entries = {}
+
+	-- Precompute how many rows each column gets
+	local start_index = 1
+	for col = 1, num_columns do
+		local rows_in_col = base_rows + (col <= extra_rows and 1 or 0)
+		column_entries[col] = {}
+
+		-- Assign keys to their respective columns
+		for row = 1, rows_in_col do
+			if start_index <= total_items then
+				table.insert(column_entries[col], keys[start_index])
+				start_index = start_index + 1
+			end
+		end
+	end
+
+	-- Rearrange into the final sorted order, maintaining column-first layout
+	local max_rows = base_rows + (extra_rows > 0 and 1 or 0)
+	for row = 1, max_rows do
 		for col = 1, num_columns do
-			local index = (col - 1) * num_rows + row
-			if index <= total_items then
-				table.insert(column_sorted, keys[index])
+			if column_entries[col][row] then
+				table.insert(column_sorted, column_entries[col][row])
 			end
 		end
 	end
@@ -254,9 +269,17 @@ function CommonUtils.GiveItem(target_id)
 	if ImGui.IsMouseReleased(ImGuiMouseButton.Left) then
 		mq.cmdf("/target id %s", target_id)
 		if mq.TLO.Cursor() then
-			mq.cmdf('/multiline ; /tar id %s; /timed 2, /face; /timed 5, /click left target', target_id)
+			mq.cmdf('/multiline ; /tar id %s; /timed 5, /click left target', target_id)
 		end
 	end
+end
+
+function CommonUtils.MaskName(name)
+	local maskedName = name
+	if maskedName ~= nil then
+		maskedName = maskedName:gsub("([A-Za-z])", "X")
+	end
+	return maskedName
 end
 
 -- --- File Picker Dialog Stuff --
@@ -350,5 +373,83 @@ end
 -- 		CommonUtils.ShowOpenFileSelector = false
 -- 	end
 -- end
+function CommonUtils.directions(heading)
+	-- convert headings from letter values to degrees
+	local dirToDeg = {
+		N = 0,
+		NEN = 22.5,
+		NE = 45,
+		ENE = 67.5,
+		E = 90,
+		ESE = 112.5,
+		SE = 135,
+		SES = 157.5,
+		S = 180,
+		SWS = 202.5,
+		SW = 225,
+		WSW = 247.5,
+		W = 270,
+		WNW = 292.5,
+		NW = 315,
+		NWN = 337.5,
+	}
+	return dirToDeg[heading] or 0 -- Returns the degree value for the given direction, defaulting to 0 if not found
+end
+
+-- Tighter relative direction code for when I make better arrows.
+function CommonUtils.getRelativeDirection(spawnDir)
+	local meHeading = CommonUtils.directions(mq.TLO.Me.Heading())
+	local spawnHeadingTo = CommonUtils.directions(spawnDir)
+	local difference = spawnHeadingTo - meHeading
+	difference = (difference + 360) % 360
+	return difference
+end
+
+function CommonUtils.RotatePoint(p, cx, cy, degAngle)
+	local radians = math.rad(degAngle)
+	local cosA = math.cos(radians)
+	local sinA = math.sin(radians)
+	local newX = cosA * (p.x - cx) - sinA * (p.y - cy) + cx
+	local newY = sinA * (p.x - cx) + cosA * (p.y - cy) + cy
+	return ImVec2(newX, newY)
+end
+
+function CommonUtils.DrawArrow(topPoint, width, height, color, angle)
+	local draw_list = ImGui.GetWindowDrawList()
+	local p1 = ImVec2(topPoint.x, topPoint.y)
+	local p2 = ImVec2(topPoint.x + width, topPoint.y + height)
+	local p3 = ImVec2(topPoint.x - width, topPoint.y + height)
+	-- center
+	local center_x = (p1.x + p2.x + p3.x) / 3
+	local center_y = (p1.y + p2.y + p3.y) / 3
+	-- rotate
+	angle = angle + .01
+	p1 = CommonUtils.RotatePoint(p1, center_x, center_y, angle)
+	p2 = CommonUtils.RotatePoint(p2, center_x, center_y, angle)
+	p3 = CommonUtils.RotatePoint(p3, center_x, center_y, angle)
+	draw_list:AddTriangleFilled(p1, p2, p3, ImGui.GetColorU32(color))
+end
+
+---comment
+---@param distance integer  the distance to check the color for
+---@param range_orange integer|nil  the distance the color changes from green to orange default (600)
+---@param range_red integer|nil  the distance the color changes from orange to red default (1200)
+---@return ImVec4 color returns the color as an ImVec4
+function CommonUtils.ColorDistance(distance, range_orange, range_red)
+	local DistColorRanges = {
+		orange = range_orange or 600, -- distance the color changes from green to orange
+		red = range_red or 1200, -- distance the color changes from orange to red
+	}
+	if distance < DistColorRanges.orange then
+		-- Green color for Close Range
+		return CommonUtils.Colors.color('green')
+	elseif distance >= DistColorRanges.orange and distance <= DistColorRanges.red then
+		-- Orange color for Mid Range
+		return CommonUtils.Colors.color('orange')
+	else
+		-- Red color for Far Distance
+		return CommonUtils.Colors.color('red')
+	end
+end
 
 return CommonUtils
